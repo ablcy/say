@@ -1,6 +1,6 @@
 {
   "name": "talk-chat-app",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Talk - 仿QQ即时聊天软件",
   "main": "index.js",
   "scripts": {
@@ -12,7 +12,6 @@
     "cors": "^2.8.5",
     "uuid": "^9.0.0",
     "pg": "^8.11.3",
-    "nedb": "^1.8.0",
     "bcryptjs": "^2.4.3",
     "@supabase/supabase-js": "^2.39.0",
     "dotenv": "^16.4.0"

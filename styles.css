@@ -166,7 +166,7 @@ form button[type="submit"]:hover {
     display: flex;
     flex-direction: column;
     height: 100vh;
-    max-width: 100%;
+    max-width: 480px;
     margin: 0 auto;
 }
 
