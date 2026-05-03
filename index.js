@@ -426,6 +426,87 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
+app.get('/admin', (req, res) => {
+  res.sendFile(path.join(__dirname, 'admin.html'));
+});
+
+app.get('/api/admin/users', async (req, res) => {
+  try {
+    let users;
+    if (DATABASE_URL) {
+      users = await usersDB.query('SELECT id, username, created_at FROM users ORDER BY created_at DESC');
+    } else {
+      users = await promisifyDB(usersDB.find).call(usersDB, {}).sort({ created_at: -1 });
+    }
+    res.json({ success: true, users: DATABASE_URL ? users.rows : users });
+  } catch (error) {
+    console.error('Get users error:', error);
+    res.status(500).json({ success: false, message: '查询失败' });
+  }
+});
+
+app.get('/api/admin/stats/users', async (req, res) => {
+  try {
+    let count;
+    if (DATABASE_URL) {
+      const result = await usersDB.query('SELECT COUNT(*) FROM users');
+      count = result.rows[0].count;
+    } else {
+      count = await new Promise((resolve, reject) => {
+        usersDB.count({}, (err, n) => {
+          if (err) reject(err);
+          else resolve(n);
+        });
+      });
+    }
+    res.json({ success: true, count: parseInt(count) || 0 });
+  } catch (error) {
+    console.error('Get user count error:', error);
+    res.json({ success: false, count: 0 });
+  }
+});
+
+app.get('/api/admin/stats/messages', async (req, res) => {
+  try {
+    let count;
+    if (DATABASE_URL) {
+      const result = await messagesDB.query('SELECT COUNT(*) FROM messages');
+      count = result.rows[0].count;
+    } else {
+      count = await new Promise((resolve, reject) => {
+        messagesDB.count({}, (err, n) => {
+          if (err) reject(err);
+          else resolve(n);
+        });
+      });
+    }
+    res.json({ success: true, count: parseInt(count) || 0 });
+  } catch (error) {
+    console.error('Get message count error:', error);
+    res.json({ success: false, count: 0 });
+  }
+});
+
+app.delete('/api/admin/users/:userId', async (req, res) => {
+  const { userId } = req.params;
+  
+  try {
+    if (DATABASE_URL) {
+      await usersDB.query('DELETE FROM users WHERE id = $1', [userId]);
+      await friendshipsDB.query('DELETE FROM friendships WHERE user_id = $1 OR friend_id = $1', [userId]);
+      await messagesDB.query('DELETE FROM messages WHERE sender_id = $1 OR receiver_id = $1', [userId]);
+    } else {
+      await promisifyDB(usersDB.remove).call(usersDB, { $or: [{ id: userId }, { _id: userId }] }, { multi: false });
+      await promisifyDB(friendshipsDB.remove).call(friendshipsDB, { $or: [{ user_id: userId }, { friend_id: userId }] }, { multi: true });
+      await promisifyDB(messagesDB.remove).call(messagesDB, { $or: [{ sender_id: userId }, { receiver_id: userId }] }, { multi: true });
+    }
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Delete user error:', error);
+    res.status(500).json({ success: false, message: '删除失败' });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Talk server running on port ${PORT}`);
   console.log(DATABASE_URL ? 'Using PostgreSQL' : 'Using NeDB for development');
