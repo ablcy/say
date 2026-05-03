@@ -51,7 +51,7 @@ if (DATABASE_URL) {
     connectionString: DATABASE_URL,
     ssl: DATABASE_URL ? { rejectUnauthorized: false } : false
   });
-  
+
   const db = {
     query: async (sql, params = []) => {
       const result = await pool.query(sql, params);
@@ -71,7 +71,7 @@ if (DATABASE_URL) {
   usersDB = new Datastore({ filename: './data/users.db', autoload: true });
   friendshipsDB = new Datastore({ filename: './data/friendships.db', autoload: true });
   messagesDB = new Datastore({ filename: './data/messages.db', autoload: true });
-  
+
   usersDB.ensureIndex({ fieldName: 'username', unique: true });
   friendshipsDB.ensureIndex({ fieldName: 'user_id' });
   friendshipsDB.ensureIndex({ fieldName: ['user_id', 'friend_id'], unique: true });
@@ -168,17 +168,17 @@ app.post('/api/register', async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
     const userId = uuidv4();
-    
+
     if (DATABASE_URL) {
       await usersDB.query(
         'INSERT INTO users (id, username, password) VALUES ($1, $2, $3)',
         [userId, username, hashedPassword]
       );
     } else {
-      await promisifyDB(usersDB.insert).call(usersDB, { 
-        _id: userId, 
-        id: userId, 
-        username, 
+      await promisifyDB(usersDB.insert).call(usersDB, {
+        _id: userId,
+        id: userId,
+        username,
         password: hashedPassword,
         created_at: new Date().toISOString()
       });
@@ -210,7 +210,7 @@ app.post('/api/login', async (req, res) => {
     }
 
     const userData = DATABASE_URL ? user.rows[0] : user[0];
-    
+
     if (!userData) {
       return res.status(400).json({ success: false, message: '用户名或密码错误' });
     }
@@ -247,7 +247,7 @@ app.post('/api/add-friend', async (req, res) => {
     }
 
     const friendData = DATABASE_URL ? friend.rows[0] : friend[0];
-    
+
     if (!friendData) {
       return res.status(400).json({ success: false, message: '用户不存在' });
     }
@@ -263,9 +263,9 @@ app.post('/api/add-friend', async (req, res) => {
         [userId, friendData.id]
       );
     } else {
-      existing = await promisifyDB(friendshipsDB.find).call(friendshipsDB, { 
-        user_id: userId, 
-        friend_id: friendData.id 
+      existing = await promisifyDB(friendshipsDB.find).call(friendshipsDB, {
+        user_id: userId,
+        friend_id: friendData.id
       });
     }
 
@@ -279,13 +279,13 @@ app.post('/api/add-friend', async (req, res) => {
         [userId, friendData.id, friendData.id, userId]
       );
     } else {
-      await promisifyDB(friendshipsDB.insert).call(friendshipsDB, { 
-        user_id: userId, 
-        friend_id: friendData.id 
+      await promisifyDB(friendshipsDB.insert).call(friendshipsDB, {
+        user_id: userId,
+        friend_id: friendData.id
       });
-      await promisifyDB(friendshipsDB.insert).call(friendshipsDB, { 
-        user_id: friendData.id, 
-        friend_id: userId 
+      await promisifyDB(friendshipsDB.insert).call(friendshipsDB, {
+        user_id: friendData.id,
+        friend_id: userId
       });
     }
 
@@ -328,8 +328,8 @@ app.get('/api/friends/:userId', async (req, res) => {
         friendIds
       );
     } else {
-      friendsData = await promisifyDB(usersDB.find).call(usersDB, { 
-        id: { $in: friendIds } 
+      friendsData = await promisifyDB(usersDB.find).call(usersDB, {
+        id: { $in: friendIds }
       });
     }
 
@@ -351,8 +351,8 @@ app.get('/api/messages/:userId/:friendId', async (req, res) => {
     let msgs;
     if (DATABASE_URL) {
       msgs = await messagesDB.query(`
-        SELECT id, sender_id as senderId, content, time, timestamp, read
-        FROM messages 
+        SELECT id, sender_id, receiver_id, content, time, timestamp, read
+        FROM messages
         WHERE (sender_id = $1 AND receiver_id = $2) OR (sender_id = $3 AND receiver_id = $4)
         ORDER BY timestamp ASC
       `, [userId, friendId, friendId, userId]);
@@ -365,11 +365,19 @@ app.get('/api/messages/:userId/:friendId', async (req, res) => {
       }).sort({ timestamp: 1 });
     }
 
-    const messages = (DATABASE_URL ? msgs.rows : msgs).map(msg => ({
-      ...msg,
-      senderId: msg.senderId || msg.sender_id,
-      read: DATABASE_URL ? msg.read : (msg.read === true || msg.read === 1)
-    }));
+    const messages = (DATABASE_URL ? msgs.rows : msgs).map(msg => {
+      const senderId = DATABASE_URL ? msg.sender_id : (msg.senderId || msg.sender_id);
+      const receiverId = DATABASE_URL ? msg.receiver_id : (msg.receiverId || msg.receiver_id);
+      return {
+        id: msg.id,
+        senderId: senderId,
+        receiverId: receiverId,
+        content: msg.content,
+        time: msg.time,
+        timestamp: msg.timestamp,
+        read: DATABASE_URL ? msg.read : (msg.read === true || msg.read === 1)
+      };
+    });
 
     res.json({ success: true, messages });
   } catch (error) {
@@ -388,8 +396,8 @@ app.post('/api/send-message', async (req, res) => {
   try {
     const message = {
       id: uuidv4(),
-      senderId,
-      receiverId,
+      senderId: senderId,
+      receiverId: receiverId,
       content,
       time: new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }),
       timestamp: Date.now(),
@@ -400,7 +408,7 @@ app.post('/api/send-message', async (req, res) => {
       await messagesDB.query(`
         INSERT INTO messages (id, sender_id, receiver_id, content, time, timestamp, read)
         VALUES ($1, $2, $3, $4, $5, $6, $7)
-      `, [message.id, message.senderId, message.receiverId, message.content, 
+      `, [message.id, message.senderId, message.receiverId, message.content,
           message.time, message.timestamp, message.read]);
     } else {
       await promisifyDB(messagesDB.insert).call(messagesDB, {
@@ -432,8 +440,8 @@ app.post('/api/mark-read', async (req, res) => {
   try {
     if (DATABASE_URL) {
       await messagesDB.query(`
-        UPDATE messages 
-        SET read = TRUE 
+        UPDATE messages
+        SET read = TRUE
         WHERE receiver_id = $1 AND sender_id = $2 AND read = FALSE
       `, [userId, friendId]);
     } else {
@@ -460,18 +468,18 @@ app.get('/admin', (req, res) => {
 
 app.post('/api/admin/login', (req, res) => {
   const { username, password } = req.body;
-  
+
   if (!username || !password) {
     return res.status(400).json({ success: false, message: '用户名和密码不能为空' });
   }
-  
+
   if (username !== ADMIN_USERNAME || password !== ADMIN_PASSWORD) {
     return res.status(401).json({ success: false, message: '用户名或密码错误' });
   }
-  
+
   const token = generateAdminToken();
   adminTokens.push(token);
-  
+
   res.json({ success: true, token, username: ADMIN_USERNAME });
 });
 
@@ -551,7 +559,7 @@ app.get('/api/admin/stats/messages', adminAuthMiddleware, async (req, res) => {
 
 app.delete('/api/admin/users/:userId', adminAuthMiddleware, async (req, res) => {
   const { userId } = req.params;
-  
+
   try {
     if (DATABASE_URL) {
       await usersDB.query('DELETE FROM users WHERE id = $1', [userId]);
