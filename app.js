@@ -225,7 +225,7 @@ class ChatApp {
         document.getElementById(`tab-${tab}`).classList.add('active');
 
         const titles = {
-            chats: 'Talk',
+            chats: 'YanTalk',
             contacts: '通讯录',
             discover: '发现',
             me: '我'
@@ -502,8 +502,8 @@ class ChatApp {
         const url = window.location.href;
         if (navigator.share) {
             navigator.share({
-                title: 'Talk',
-                text: '来试试 Talk，简单好用的聊天工具！',
+                title: 'YanTalk',
+                text: '来试试 YanTalk，简单好用的聊天工具！',
                 url: url
             });
         } else {
