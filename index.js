@@ -15,6 +15,34 @@ app.use(express.static(__dirname));
 const DATABASE_URL = process.env.DATABASE_URL;
 const SALT_ROUNDS = 10;
 
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
+const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
+
+let adminTokens = [];
+
+function generateAdminToken() {
+  return uuidv4();
+}
+
+function validateAdminToken(token) {
+  return adminTokens.includes(token);
+}
+
+function removeAdminToken(token) {
+  const index = adminTokens.indexOf(token);
+  if (index > -1) {
+    adminTokens.splice(index, 1);
+  }
+}
+
+function adminAuthMiddleware(req, res, next) {
+  const token = req.headers['x-admin-token'];
+  if (!token || !validateAdminToken(token)) {
+    return res.status(401).json({ success: false, message: '未授权访问，请先登录' });
+  }
+  next();
+}
+
 let usersDB, friendshipsDB, messagesDB;
 
 if (DATABASE_URL) {
@@ -430,7 +458,41 @@ app.get('/admin', (req, res) => {
   res.sendFile(path.join(__dirname, 'admin.html'));
 });
 
-app.get('/api/admin/users', async (req, res) => {
+app.post('/api/admin/login', (req, res) => {
+  const { username, password } = req.body;
+  
+  if (!username || !password) {
+    return res.status(400).json({ success: false, message: '用户名和密码不能为空' });
+  }
+  
+  if (username !== ADMIN_USERNAME || password !== ADMIN_PASSWORD) {
+    return res.status(401).json({ success: false, message: '用户名或密码错误' });
+  }
+  
+  const token = generateAdminToken();
+  adminTokens.push(token);
+  
+  res.json({ success: true, token, username: ADMIN_USERNAME });
+});
+
+app.post('/api/admin/logout', (req, res) => {
+  const token = req.headers['x-admin-token'];
+  if (token) {
+    removeAdminToken(token);
+  }
+  res.json({ success: true });
+});
+
+app.get('/api/admin/verify', (req, res) => {
+  const token = req.headers['x-admin-token'];
+  if (token && validateAdminToken(token)) {
+    res.json({ success: true, username: ADMIN_USERNAME });
+  } else {
+    res.status(401).json({ success: false, message: '未登录' });
+  }
+});
+
+app.get('/api/admin/users', adminAuthMiddleware, async (req, res) => {
   try {
     let users;
     if (DATABASE_URL) {
@@ -445,7 +507,7 @@ app.get('/api/admin/users', async (req, res) => {
   }
 });
 
-app.get('/api/admin/stats/users', async (req, res) => {
+app.get('/api/admin/stats/users', adminAuthMiddleware, async (req, res) => {
   try {
     let count;
     if (DATABASE_URL) {
@@ -466,7 +528,7 @@ app.get('/api/admin/stats/users', async (req, res) => {
   }
 });
 
-app.get('/api/admin/stats/messages', async (req, res) => {
+app.get('/api/admin/stats/messages', adminAuthMiddleware, async (req, res) => {
   try {
     let count;
     if (DATABASE_URL) {
@@ -487,7 +549,7 @@ app.get('/api/admin/stats/messages', async (req, res) => {
   }
 });
 
-app.delete('/api/admin/users/:userId', async (req, res) => {
+app.delete('/api/admin/users/:userId', adminAuthMiddleware, async (req, res) => {
   const { userId } = req.params;
   
   try {

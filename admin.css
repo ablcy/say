@@ -365,6 +365,92 @@ body {
     border-top: 1px solid var(--border-color);
 }
 
+.login-screen {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, var(--talk-blue) 0%, var(--talk-dark-blue) 100%);
+}
+
+.login-container {
+    background: var(--white);
+    padding: 40px 30px;
+    border-radius: 20px;
+    width: 90%;
+    max-width: 380px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+}
+
+.login-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.admin-logo {
+    width: 80px;
+    height: 80px;
+    background: linear-gradient(135deg, var(--talk-blue) 0%, var(--talk-dark-blue) 100%);
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 2.5rem;
+    margin: 0 auto 15px;
+}
+
+.login-header h1 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin-bottom: 5px;
+}
+
+.login-header p {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--text-primary);
+}
+
+.form-group input {
+    width: 100%;
+    padding: 14px 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    font-size: 1rem;
+    transition: border-color 0.2s;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: var(--talk-blue);
+}
+
+.btn-block {
+    width: 100%;
+    padding: 14px;
+}
+
+.user-badge {
+    background: rgba(52, 199, 89, 0.1);
+    color: var(--talk-green);
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
 @media (max-width: 768px) {
     .header-content {
         flex-direction: column;

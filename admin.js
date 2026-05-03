@@ -3,19 +3,112 @@ class AdminPanel {
         this.baseUrl = window.location.origin;
         this.users = [];
         this.filteredUsers = [];
+        this.adminToken = localStorage.getItem('adminToken');
+        this.currentUser = null;
         this.init();
     }
 
     init() {
-        this.bindEvents();
-        this.loadStats();
-        this.loadUsers();
+        if (this.adminToken) {
+            this.verifyToken();
+        } else {
+            this.showLoginScreen();
+        }
+    }
+
+    async verifyToken() {
+        try {
+            const response = await fetch(`${this.baseUrl}/api/admin/verify`, {
+                headers: { 'x-admin-token': this.adminToken }
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                this.currentUser = data.username;
+                this.hideLoginScreen();
+                this.bindEvents();
+                this.loadStats();
+                this.loadUsers();
+                this.addLog(`管理员 ${this.currentUser} 登录成功`, '成功');
+            } else {
+                this.showLoginScreen();
+            }
+        } catch (error) {
+            this.showLoginScreen();
+        }
+    }
+
+    showLoginScreen() {
+        document.getElementById('login-screen').style.display = 'flex';
+        document.getElementById('app').style.display = 'none';
+        this.bindLoginEvents();
+    }
+
+    hideLoginScreen() {
+        document.getElementById('login-screen').style.display = 'none';
+        document.getElementById('app').style.display = 'block';
+        document.getElementById('current-user').textContent = `👤 ${this.currentUser}`;
+    }
+
+    bindLoginEvents() {
+        const loginForm = document.getElementById('login-form');
+        loginForm.addEventListener('submit', (e) => this.handleLogin(e));
+    }
+
+    async handleLogin(e) {
+        e.preventDefault();
+        
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+        const errorElement = document.getElementById('login-error');
+        
+        try {
+            const response = await fetch(`${this.baseUrl}/api/admin/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                this.adminToken = data.token;
+                this.currentUser = data.username;
+                localStorage.setItem('adminToken', data.token);
+                this.hideLoginScreen();
+                this.bindEvents();
+                this.loadStats();
+                this.loadUsers();
+            } else {
+                errorElement.textContent = data.message || '登录失败';
+            }
+        } catch (error) {
+            errorElement.textContent = '网络错误，请重试';
+        }
+    }
+
+    async handleLogout() {
+        try {
+            await fetch(`${this.baseUrl}/api/admin/logout`, {
+                method: 'POST',
+                headers: { 'x-admin-token': this.adminToken }
+            });
+        } catch (error) {
+            console.error('Logout error:', error);
+        }
+        
+        localStorage.removeItem('adminToken');
+        this.adminToken = null;
+        this.currentUser = null;
+        this.addLog('管理员已退出登录', '信息');
+        this.showLoginScreen();
     }
 
     bindEvents() {
         document.getElementById('refresh-btn').addEventListener('click', () => this.loadUsers());
         document.getElementById('search-user-search').addEventListener('input', (e) => this.filterUsers(e.target.value));
         document.getElementById('clear-logs-btn').addEventListener('click', () => this.clearLogs());
+        document.getElementById('logout-btn').addEventListener('click', () => this.handleLogout());
         
         document.getElementById('close-modal-btn').addEventListener('click', () => this.closeModal());
         document.getElementById('cancel-btn').addEventListener('click', () => this.closeModal());
@@ -55,8 +148,12 @@ class AdminPanel {
     async loadStats() {
         try {
             const [usersRes, messagesRes] = await Promise.all([
-                fetch(`${this.baseUrl}/api/admin/stats/users`),
-                fetch(`${this.baseUrl}/api/admin/stats/messages`)
+                fetch(`${this.baseUrl}/api/admin/stats/users`, {
+                    headers: { 'x-admin-token': this.adminToken }
+                }),
+                fetch(`${this.baseUrl}/api/admin/stats/messages`, {
+                    headers: { 'x-admin-token': this.adminToken }
+                })
             ]);
             
             const usersData = await usersRes.json();
@@ -78,8 +175,14 @@ class AdminPanel {
         tbody.innerHTML = '<tr class="loading-row"><td colspan="6">加载中...</td></tr>';
         
         try {
-            const response = await fetch(`${this.baseUrl}/api/admin/users`);
+            const response = await fetch(`${this.baseUrl}/api/admin/users`, {
+                headers: { 'x-admin-token': this.adminToken }
+            });
             const data = await response.json();
+            
+            if (!data.success) {
+                throw new Error(data.message || '获取用户失败');
+            }
             
             this.users = data.users || [];
             this.filteredUsers = [...this.users];
@@ -166,7 +269,8 @@ class AdminPanel {
     async doDeleteUser(userId, username) {
         try {
             const response = await fetch(`${this.baseUrl}/api/admin/users/${userId}`, {
-                method: 'DELETE'
+                method: 'DELETE',
+                headers: { 'x-admin-token': this.adminToken }
             });
             
             const result = await response.json();
@@ -176,7 +280,7 @@ class AdminPanel {
                 this.loadUsers();
                 this.loadStats();
             } else {
-                this.addLog(`删除用户失败: ${result.error}`, '错误');
+                this.addLog(`删除用户失败: ${result.message}`, '错误');
             }
         } catch (error) {
             this.addLog(`删除用户失败: ${error.message}`, '错误');
