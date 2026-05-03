@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Talk - 即时聊天</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="app">
+        <div id="auth-screen" class="screen">
+            <div class="auth-container">
+                <div class="auth-header">
+                    <div class="app-logo">T</div>
+                    <h1>Talk</h1>
+                    <p>即时通讯聊天工具</p>
+                </div>
+                
+                <div class="auth-tabs">
+                    <button id="login-tab" class="active">登录</button>
+                    <button id="register-tab">注册</button>
+                </div>
+                
+                <form id="login-form">
+                    <input type="text" id="login-username" placeholder="用户名" required>
+                    <input type="password" id="login-password" placeholder="密码" required>
+                    <button type="submit">登录</button>
+                    <p class="error-message" id="login-error"></p>
+                </form>
+                
+                <form id="register-form" style="display: none;">
+                    <input type="text" id="register-username" placeholder="用户名（至少3个字符）" required>
+                    <input type="password" id="register-password" placeholder="密码" required>
+                    <input type="password" id="register-password-confirm" placeholder="确认密码" required>
+                    <button type="submit">注册</button>
+                    <p class="error-message" id="register-error"></p>
+                </form>
+                
+                <div class="version-info">
+                    <span>v1.0.0</span>
+                    <span class="copyright">Talk Chat App</span>
+                </div>
+            </div>
+        </div>
+
+        <div id="main-screen" class="screen" style="display: none;">
+            <div class="main-wrapper">
+                <header class="header">
+                    <h1 id="page-title">Talk</h1>
+                    <div class="header-info">
+                        <span id="uptime-display" class="uptime"></span>
+                        <span class="version-badge">v1.0.0</span>
+                    </div>
+                </header>
+
+                <main class="main-content">
+                    <div id="tab-chats" class="tab-content active">
+                        <div class="search-bar">
+                            <input type="text" placeholder="搜索" id="search-input">
+                        </div>
+                        <div class="chat-list" id="chat-list">
+                            <div class="empty-state">暂无聊天记录</div>
+                        </div>
+                    </div>
+
+                    <div id="tab-contacts" class="tab-content">
+                        <div class="search-bar">
+                            <input type="text" placeholder="搜索好友" id="search-contact-input">
+                        </div>
+                        <div class="contacts-list" id="contacts-list">
+                            <div class="empty-state">暂无好友</div>
+                        </div>
+                        <button id="add-friend-btn" class="fab-btn">+</button>
+                    </div>
+
+                    <div id="tab-discover" class="tab-content">
+                        <div class="update-info">
+                            <div class="update-header">
+                                <span class="update-icon">📢</span>
+                                <h3>更新日志 v1.0.0</h3>
+                            </div>
+                            <div class="update-content">
+                                <div class="update-item">✨ v1.0.0: 全新 Talk 聊天软件发布</div>
+                                <div class="update-item">🔐 密码加密保护，安全可靠</div>
+                                <div class="update-item">💾 Supabase 云数据库，数据永不丢失</div>
+                                <div class="update-item">⚡ 实时消息推送，即时送达</div>
+                                <div class="update-item">📱 跨平台支持，随时随地聊天</div>
+                            </div>
+                        </div>
+                        <div class="discover-list">
+                            <div class="discover-item" id="share-app-btn">
+                                <span class="discover-icon">📤</span>
+                                <span>分享应用</span>
+                                <span class="arrow">›</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="tab-me" class="tab-content">
+                        <div class="profile-header">
+                            <div class="avatar-large">
+                                <span id="profile-avatar">?</span>
+                            </div>
+                            <div class="profile-info">
+                                <span id="profile-username" class="profile-name">未登录</span>
+                            </div>
+                        </div>
+                        <div class="settings-list">
+                            <div class="settings-item" id="logout-btn">
+                                <span>退出登录</span>
+                                <span class="arrow">›</span>
+                            </div>
+                        </div>
+                        <div class="footer-info">
+                            <p>Talk v1.0.0</p>
+                            <p class="copyright">Talk Chat App</p>
+                        </div>
+                    </div>
+                </main>
+
+                <nav class="bottom-nav">
+                    <div class="nav-item active" data-tab="chats">
+                        <span class="nav-icon">💬</span>
+                        <span>消息</span>
+                    </div>
+                    <div class="nav-item" data-tab="contacts">
+                        <span class="nav-icon">👥</span>
+                        <span>通讯录</span>
+                    </div>
+                    <div class="nav-item" data-tab="discover">
+                        <span class="nav-icon">🔍</span>
+                        <span>发现</span>
+                    </div>
+                    <div class="nav-item" data-tab="me">
+                        <span class="nav-icon">👤</span>
+                        <span>我</span>
+                    </div>
+                </nav>
+            </div>
+
+            <div id="chat-view" class="chat-view" style="display: none;">
+                <div class="chat-header">
+                    <button id="back-btn" class="icon-btn">‹</button>
+                    <span id="chat-friend-name">好友名称</span>
+                    <button class="icon-btn">⋮</button>
+                </div>
+                <div id="messages-container" class="messages-container">
+                    <div class="empty-chat">
+                        <p>开始聊天吧！</p>
+                    </div>
+                </div>
+                <div class="message-input-area">
+                    <button id="emoji-btn" class="icon-btn">😊</button>
+                    <input type="text" id="message-input" placeholder="输入消息...">
+                    <button id="send-btn" class="send-btn">发送</button>
+                </div>
+            </div>
+
+            <div id="add-friend-modal" class="modal" style="display: none;">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>添加好友</h3>
+                        <button id="close-modal-btn" class="icon-btn">×</button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="text" id="add-friend-input" placeholder="输入用户名">
+                        <p class="error-message" id="add-friend-error"></p>
+                    </div>
+                    <div class="modal-footer">
+                        <button id="confirm-add-friend-btn">添加</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
