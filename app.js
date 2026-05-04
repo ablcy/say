@@ -36,14 +36,9 @@ class ChatApp {
             if (e.key === 'Enter') this.send();
         });
 
-        document.getElementById('add-friend-btn').addEventListener('click', () => this.showAddFriendModal());
-        document.getElementById('close-modal-btn').addEventListener('click', () => this.closeAddFriendModal());
-        document.getElementById('confirm-add-friend-btn').addEventListener('click', () => this.addFriend());
-
         document.getElementById('logout-btn').addEventListener('click', () => this.logout());
         document.getElementById('share-app-btn').addEventListener('click', () => this.shareApp());
 
-        // 头像上传相关
         document.getElementById('upload-avatar-btn').addEventListener('click', () => {
             document.getElementById('avatar-upload-input').click();
         });
@@ -52,21 +47,22 @@ class ChatApp {
         });
         document.getElementById('avatar-upload-input').addEventListener('change', (e) => this.handleAvatarUpload(e));
 
-        // 图片发送相关
         document.getElementById('image-btn').addEventListener('click', () => {
             document.getElementById('image-upload-input').click();
         });
         document.getElementById('image-upload-input').addEventListener('change', (e) => this.handleImageUpload(e));
 
-        // 修改密码相关
         document.getElementById('change-password-btn').addEventListener('click', () => this.showChangePasswordModal());
         document.getElementById('close-password-modal-btn').addEventListener('click', () => this.closeChangePasswordModal());
         document.getElementById('confirm-change-password-btn').addEventListener('click', () => this.changePassword());
 
-        // 修改昵称相关
         document.getElementById('change-nickname-btn').addEventListener('click', () => this.showChangeNicknameModal());
         document.getElementById('close-nickname-modal-btn').addEventListener('click', () => this.closeChangeNicknameModal());
         document.getElementById('confirm-change-nickname-btn').addEventListener('click', () => this.changeNickname());
+
+        document.getElementById('search-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') this.handleSearchAddFriend(e);
+        });
     }
 
     startUptimeTimer() {
@@ -199,7 +195,6 @@ class ChatApp {
         document.getElementById('auth-screen').style.display = 'none';
         document.getElementById('main-screen').style.display = 'flex';
         this.updateProfile();
-        this.renderContactsList();
         this.renderChatList();
     }
 
@@ -285,15 +280,12 @@ class ChatApp {
 
         const titles = {
             chats: 'YanTalk',
-            contacts: '通讯录',
             discover: '发现',
             me: '我'
         };
-        document.getElementById('page-title').textContent = titles[tab];
+        document.getElementById('page-title').textContent = titles[tab] || 'YanTalk';
 
-        if (tab === 'contacts') {
-            this.renderContactsList();
-        } else if (tab === 'chats') {
+        if (tab === 'chats') {
             this.renderChatList();
         }
     }
@@ -301,17 +293,12 @@ class ChatApp {
     renderChatList() {
         const chatList = document.getElementById('chat-list');
 
-        const friendsWithMessages = this.friends.filter(friend => {
-            const msgs = this.messages[friend.id];
-            return msgs && msgs.length > 0;
-        });
-
-        if (friendsWithMessages.length === 0) {
-            chatList.innerHTML = '<div class="empty-state">暂无聊天记录</div>';
+        if (this.friends.length === 0) {
+            chatList.innerHTML = '<div class="empty-state">暂无好友，请在搜索框输入账号添加好友</div>';
             return;
         }
 
-        chatList.innerHTML = friendsWithMessages.map(friend => {
+        chatList.innerHTML = this.friends.map(friend => {
             const friendMessages = this.messages[friend.id] || [];
             const lastMessage = friendMessages[friendMessages.length - 1];
             const unreadCount = this.getUnreadCount(friend.id);
@@ -340,37 +327,6 @@ class ChatApp {
                         ${lastMessage ? `<div class="chat-time">${lastMessage.time}</div>` : ''}
                         ${unreadCount > 0 ? `<div class="unread-badge">${unreadCount}</div>` : ''}
                     </div>
-                </div>
-            `;
-        }).join('');
-    }
-
-    renderContactsList() {
-        const contactsList = document.getElementById('contacts-list');
-
-        if (this.friends.length === 0) {
-            contactsList.innerHTML = '<div class="empty-state">暂无好友</div>';
-            return;
-        }
-
-        contactsList.innerHTML = this.friends.map(friend => {
-            let avatarContent = '';
-            if (friend.avatar && friend.avatar.trim() !== '') {
-                avatarContent = `<div style="width: 100%; height: 100%; border-radius: 50%; overflow: hidden;">
-                    <img src="${friend.avatar}" alt="" style="width: 100%; height: 100%; object-fit: cover;">
-                </div>`;
-            } else {
-                avatarContent = `<div style="width: 100%; height: 100%; border-radius: 50%; background: var(--talk-blue); color: white; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 500;">
-                    ${friend.username.charAt(0).toUpperCase()}
-                </div>`;
-            }
-
-            return `
-                <div class="contact-item" data-friend-id="${friend.id}" onclick="app.openChat('${friend.id}')">
-                    <div class="avatar">
-                        ${avatarContent}
-                    </div>
-                    <span class="contact-name">${friend.username}</span>
                 </div>
             `;
         }).join('');
@@ -526,27 +482,25 @@ class ChatApp {
         container.scrollTop = container.scrollHeight;
     }
 
-    showAddFriendModal() {
-        document.getElementById('add-friend-modal').style.display = 'flex';
-        document.getElementById('add-friend-input').value = '';
-        document.getElementById('add-friend-error').textContent = '';
-    }
+    async handleSearchAddFriend(e) {
+        if (e.key !== 'Enter') return;
 
-    closeAddFriendModal() {
-        document.getElementById('add-friend-modal').style.display = 'none';
-    }
-
-    async addFriend() {
-        const friendUsername = document.getElementById('add-friend-input').value.trim();
-        const errorElement = document.getElementById('add-friend-error');
+        const searchInput = document.getElementById('search-input');
+        const friendUsername = searchInput.value.trim();
 
         if (!friendUsername) {
-            errorElement.textContent = '请输入用户名';
             return;
         }
 
         if (friendUsername === this.currentUser.username) {
-            errorElement.textContent = '不能添加自己为好友';
+            alert('不能添加自己为好友');
+            return;
+        }
+
+        const existingFriend = this.friends.find(f => f.username === friendUsername);
+        if (existingFriend) {
+            this.openChat(existingFriend.id);
+            searchInput.value = '';
             return;
         }
 
@@ -558,17 +512,11 @@ class ChatApp {
         if (result.success) {
             this.friends.push(result.friend);
             this.messages[result.friend.id] = [];
-            this.closeAddFriendModal();
-            this.renderContactsList();
+            searchInput.value = '';
             this.renderChatList();
-
-            await this.loadMessagesForFriend(result.friend.id);
-
-            if (this.messages[result.friend.id] && this.messages[result.friend.id].length > 0) {
-                this.renderChatList();
-            }
+            this.openChat(result.friend.id);
         } else {
-            errorElement.textContent = result.message || '添加失败';
+            alert(result.message || '添加失败，该用户不存在');
         }
     }
 
@@ -618,7 +566,6 @@ class ChatApp {
                 this.currentUser.avatar = result.avatar;
                 localStorage.setItem('currentUser', JSON.stringify(this.currentUser));
                 this.updateProfile();
-                this.renderContactsList();
                 this.renderChatList();
                 this.renderMessages();
             } else {

@@ -56,21 +56,13 @@
                 <main class="main-content">
                     <div id="tab-chats" class="tab-content active">
                         <div class="search-bar">
-                            <input type="text" placeholder="搜索" id="search-input">
+                            <input type="text" placeholder="搜索好友/账号" id="search-input">
                         </div>
                         <div class="chat-list" id="chat-list">
                             <div class="empty-state">暂无聊天记录</div>
                         </div>
-                    </div>
-
-                    <div id="tab-contacts" class="tab-content">
-                        <div class="search-bar">
-                            <input type="text" placeholder="搜索好友" id="search-contact-input">
+                        <div class="contacts-list" id="contacts-list" style="display: none;">
                         </div>
-                        <div class="contacts-list" id="contacts-list">
-                            <div class="empty-state">暂无好友</div>
-                        </div>
-                        <button id="add-friend-btn" class="fab-btn">+</button>
                     </div>
 
                     <div id="tab-discover" class="tab-content">
@@ -157,10 +149,6 @@
                         <span class="nav-icon">💬</span>
                         <span>消息</span>
                     </div>
-                    <div class="nav-item" data-tab="contacts">
-                        <span class="nav-icon">👥</span>
-                        <span>通讯录</span>
-                    </div>
                     <div class="nav-item" data-tab="discover">
                         <span class="nav-icon">🔍</span>
                         <span>发现</span>
@@ -188,22 +176,6 @@
                     <input type="text" id="message-input" placeholder="输入消息...">
                     <button id="image-btn" class="icon-btn">+</button>
                     <button id="send-btn" class="send-btn">发送</button>
-                </div>
-            </div>
-
-            <div id="add-friend-modal" class="modal" style="display: none;">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h3>添加好友</h3>
-                        <button id="close-modal-btn" class="icon-btn">×</button>
-                    </div>
-                    <div class="modal-body">
-                        <input type="text" id="add-friend-input" placeholder="输入账号">
-                        <p class="error-message" id="add-friend-error"></p>
-                    </div>
-                    <div class="modal-footer">
-                        <button id="confirm-add-friend-btn">添加</button>
-                    </div>
                 </div>
             </div>
 
