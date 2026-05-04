@@ -188,6 +188,19 @@ form button[type="submit"]:hover {
     box-shadow: var(--shadow-sm);
 }
 
+.header-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.header-logo {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    object-fit: cover;
+}
+
 .header h1 {
     font-size: 1.2rem;
     font-weight: 600;
@@ -600,8 +613,11 @@ form button[type="submit"]:hover {
     border-bottom: 1px solid var(--border-color);
 }
 
-.update-icon {
-    font-size: 1.5rem;
+.update-logo {
+    width: 28px;
+    height: 28px;
+    border-radius: 7px;
+    object-fit: cover;
 }
 
 .update-header h3 {
