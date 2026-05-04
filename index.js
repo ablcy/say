@@ -406,7 +406,7 @@ app.get('/api/messages/:userId/:friendId', async (req, res) => {
     let msgs;
     if (DATABASE_URL) {
       msgs = await messagesDB.query(`
-        SELECT id, sender_id, receiver_id, content, time, timestamp, read
+        SELECT id, sender_id, receiver_id, content, type, time, timestamp, read
         FROM messages
         WHERE (sender_id = $1 AND receiver_id = $2) OR (sender_id = $3 AND receiver_id = $4)
         ORDER BY timestamp ASC
