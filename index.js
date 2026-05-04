@@ -659,19 +659,23 @@ app.post('/api/upload-avatar', upload.single('avatar'), async (req, res) => {
       return res.status(400).json({ success: false, message: '参数错误' });
     }
 
-    const avatarUrl = `/uploads/${req.file.filename}`;
+    const filePath = path.join(uploadsDir, req.file.filename);
+    const fileBuffer = fs.readFileSync(filePath);
+    const base64Image = `data:${req.file.mimetype};base64,${fileBuffer.toString('base64')}`;
+    
+    fs.unlinkSync(filePath);
 
     if (DATABASE_URL) {
-      await usersDB.query('UPDATE users SET avatar = $1 WHERE id = $2', [avatarUrl, userId]);
+      await usersDB.query('UPDATE users SET avatar = $1 WHERE id = $2', [base64Image, userId]);
     } else {
       await promisifyDB(usersDB.update).call(usersDB,
         { id: userId },
-        { $set: { avatar: avatarUrl } },
+        { $set: { avatar: base64Image } },
         { multi: false }
       );
     }
 
-    res.json({ success: true, avatar: avatarUrl });
+    res.json({ success: true, avatar: base64Image });
   } catch (error) {
     console.error('Upload avatar error:', error);
     res.status(500).json({ success: false, message: '上传失败' });
