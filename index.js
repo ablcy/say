@@ -277,7 +277,8 @@ app.post('/api/login', async (req, res) => {
       user: { 
         id: userData.id, 
         username: userData.username,
-        avatar: userData.avatar || null
+        avatar: userData.avatar || null,
+        nickname: userData.nickname || ''
       } 
     });
   } catch (error) {
