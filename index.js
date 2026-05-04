@@ -4,6 +4,8 @@ const cors = require('cors');
 const { v4: uuidv4 } = require('uuid');
 const bcrypt = require('bcryptjs');
 const path = require('path');
+const multer = require('multer');
+const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -11,6 +13,35 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 app.use(express.static(__dirname));
+
+// 确保uploads目录存在
+const uploadsDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+// 配置multer存储
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, uploadsDir);
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + uuidv4();
+    cb(null, uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({
+  storage: storage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB限制
+  fileFilter: function (req, file, cb) {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('只允许上传图片文件'));
+    }
+  }
+});
 
 const DATABASE_URL = process.env.DATABASE_URL;
 const SALT_ROUNDS = 10;
@@ -87,9 +118,17 @@ async function initDB() {
           id TEXT PRIMARY KEY,
           username TEXT UNIQUE NOT NULL,
           password TEXT NOT NULL,
+          avatar TEXT,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
       `);
+
+      // 添加avatar列（如果不存在）
+      try {
+        await usersDB.query('ALTER TABLE users ADD COLUMN avatar TEXT');
+      } catch (e) {
+        // 列已存在，忽略错误
+      }
 
       await friendshipsDB.query(`
         CREATE TABLE IF NOT EXISTS friendships (
@@ -106,11 +145,19 @@ async function initDB() {
           sender_id TEXT NOT NULL,
           receiver_id TEXT NOT NULL,
           content TEXT NOT NULL,
+          type TEXT DEFAULT 'text',
           time TEXT NOT NULL,
           timestamp BIGINT NOT NULL,
           read BOOLEAN DEFAULT FALSE
         )
       `);
+
+      // 添加type列（如果不存在）
+      try {
+        await messagesDB.query('ALTER TABLE messages ADD COLUMN type TEXT DEFAULT \'text\'');
+      } catch (e) {
+        // 列已存在，忽略错误
+      }
 
       await messagesDB.query(`
         CREATE INDEX IF NOT EXISTS idx_messages_sender_receiver ON messages(sender_id, receiver_id)
@@ -171,8 +218,8 @@ app.post('/api/register', async (req, res) => {
 
     if (DATABASE_URL) {
       await usersDB.query(
-        'INSERT INTO users (id, username, password) VALUES ($1, $2, $3)',
-        [userId, username, hashedPassword]
+        'INSERT INTO users (id, username, password, avatar) VALUES ($1, $2, $3, $4)',
+        [userId, username, hashedPassword, null]
       );
     } else {
       await promisifyDB(usersDB.insert).call(usersDB, {
@@ -180,11 +227,12 @@ app.post('/api/register', async (req, res) => {
         id: userId,
         username,
         password: hashedPassword,
+        avatar: null,
         created_at: new Date().toISOString()
       });
     }
 
-    res.json({ success: true, user: { id: userId, username } });
+    res.json({ success: true, user: { id: userId, username, avatar: null } });
   } catch (error) {
     console.error('Register error:', error);
     res.status(500).json({ success: false, message: '注册失败' });
@@ -202,7 +250,7 @@ app.post('/api/login', async (req, res) => {
     let user;
     if (DATABASE_URL) {
       user = await usersDB.query(
-        'SELECT id, username, password FROM users WHERE username = $1',
+        'SELECT id, username, password, avatar FROM users WHERE username = $1',
         [username]
       );
     } else {
@@ -221,7 +269,14 @@ app.post('/api/login', async (req, res) => {
       return res.status(400).json({ success: false, message: '用户名或密码错误' });
     }
 
-    res.json({ success: true, user: { id: userData.id, username: userData.username } });
+    res.json({ 
+      success: true, 
+      user: { 
+        id: userData.id, 
+        username: userData.username,
+        avatar: userData.avatar || null
+      } 
+    });
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({ success: false, message: '登录失败' });
@@ -324,7 +379,7 @@ app.get('/api/friends/:userId', async (req, res) => {
     if (DATABASE_URL) {
       const placeholders = friendIds.map((_, i) => `$${i + 1}`).join(',');
       friendsData = await usersDB.query(
-        `SELECT id, username FROM users WHERE id IN (${placeholders})`,
+        `SELECT id, username, avatar FROM users WHERE id IN (${placeholders})`,
         friendIds
       );
     } else {
@@ -373,6 +428,7 @@ app.get('/api/messages/:userId/:friendId', async (req, res) => {
         senderId: senderId,
         receiverId: receiverId,
         content: msg.content,
+        type: msg.type || 'text',
         time: msg.time,
         timestamp: msg.timestamp,
         read: DATABASE_URL ? msg.read : (msg.read === true || msg.read === 1)
@@ -387,7 +443,7 @@ app.get('/api/messages/:userId/:friendId', async (req, res) => {
 });
 
 app.post('/api/send-message', async (req, res) => {
-  const { senderId, receiverId, content } = req.body;
+  const { senderId, receiverId, content, type = 'text' } = req.body;
 
   if (!senderId || !receiverId || !content) {
     return res.status(400).json({ success: false, message: '参数错误' });
@@ -409,6 +465,7 @@ app.post('/api/send-message', async (req, res) => {
       senderId: senderId,
       receiverId: receiverId,
       content,
+      type: type,
       time: formattedTime,
       timestamp: Date.now(),
       read: false
@@ -416,10 +473,10 @@ app.post('/api/send-message', async (req, res) => {
 
     if (DATABASE_URL) {
       await messagesDB.query(`
-        INSERT INTO messages (id, sender_id, receiver_id, content, time, timestamp, read)
-        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        INSERT INTO messages (id, sender_id, receiver_id, content, type, time, timestamp, read)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       `, [message.id, message.senderId, message.receiverId, message.content,
-          message.time, message.timestamp, message.read]);
+          message.type, message.time, message.timestamp, message.read]);
     } else {
       await promisifyDB(messagesDB.insert).call(messagesDB, {
         _id: message.id,
@@ -427,6 +484,7 @@ app.post('/api/send-message', async (req, res) => {
         sender_id: message.senderId,
         receiver_id: message.receiverId,
         content: message.content,
+        type: message.type,
         time: message.time,
         timestamp: message.timestamp,
         read: false
@@ -584,6 +642,100 @@ app.delete('/api/admin/users/:userId', adminAuthMiddleware, async (req, res) => 
   } catch (error) {
     console.error('Delete user error:', error);
     res.status(500).json({ success: false, message: '删除失败' });
+  }
+});
+
+// 上传头像API
+app.post('/api/upload-avatar', upload.single('avatar'), async (req, res) => {
+  try {
+    const { userId } = req.body;
+
+    if (!userId || !req.file) {
+      return res.status(400).json({ success: false, message: '参数错误' });
+    }
+
+    const avatarUrl = `/uploads/${req.file.filename}`;
+
+    if (DATABASE_URL) {
+      await usersDB.query('UPDATE users SET avatar = $1 WHERE id = $2', [avatarUrl, userId]);
+    } else {
+      await promisifyDB(usersDB.update).call(usersDB,
+        { id: userId },
+        { $set: { avatar: avatarUrl } },
+        { multi: false }
+      );
+    }
+
+    res.json({ success: true, avatar: avatarUrl });
+  } catch (error) {
+    console.error('Upload avatar error:', error);
+    res.status(500).json({ success: false, message: '上传失败' });
+  }
+});
+
+// 修改密码API
+app.post('/api/change-password', async (req, res) => {
+  const { userId, oldPassword, newPassword } = req.body;
+
+  if (!userId || !oldPassword || !newPassword) {
+    return res.status(400).json({ success: false, message: '参数错误' });
+  }
+
+  if (newPassword.length < 1) {
+    return res.status(400).json({ success: false, message: '新密码不能为空' });
+  }
+
+  try {
+    let user;
+    if (DATABASE_URL) {
+      user = await usersDB.query('SELECT id, password FROM users WHERE id = $1', [userId]);
+    } else {
+      user = await promisifyDB(usersDB.find).call(usersDB, { id: userId });
+    }
+
+    const userData = DATABASE_URL ? user.rows[0] : user[0];
+
+    if (!userData) {
+      return res.status(400).json({ success: false, message: '用户不存在' });
+    }
+
+    const passwordMatch = await bcrypt.compare(oldPassword, userData.password);
+
+    if (!passwordMatch) {
+      return res.status(400).json({ success: false, message: '原密码错误' });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, SALT_ROUNDS);
+
+    if (DATABASE_URL) {
+      await usersDB.query('UPDATE users SET password = $1 WHERE id = $2', [hashedPassword, userId]);
+    } else {
+      await promisifyDB(usersDB.update).call(usersDB,
+        { id: userId },
+        { $set: { password: hashedPassword } },
+        { multi: false }
+      );
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Change password error:', error);
+    res.status(500).json({ success: false, message: '修改失败' });
+  }
+});
+
+// 上传图片API
+app.post('/api/upload-image', upload.single('image'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: '参数错误' });
+    }
+
+    const imageUrl = `/uploads/${req.file.filename}`;
+    res.json({ success: true, url: imageUrl });
+  } catch (error) {
+    console.error('Upload image error:', error);
+    res.status(500).json({ success: false, message: '上传失败' });
   }
 });
 

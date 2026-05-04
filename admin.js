@@ -172,7 +172,7 @@ class AdminPanel {
 
     async loadUsers() {
         const tbody = document.getElementById('users-table-body');
-        tbody.innerHTML = '<tr class="loading-row"><td colspan="6">加载中...</td></tr>';
+        tbody.innerHTML = '<tr class="loading-row"><td colspan="7">加载中...</td></tr>';
         
         try {
             const response = await fetch(`${this.baseUrl}/api/admin/users`, {
@@ -191,7 +191,7 @@ class AdminPanel {
             this.addLog(`成功加载 ${this.users.length} 个用户`, '成功');
         } catch (error) {
             this.addLog(`加载用户失败: ${error.message}`, '错误');
-            tbody.innerHTML = '<tr class="loading-row"><td colspan="6">加载失败，请刷新重试</td></tr>';
+            tbody.innerHTML = '<tr class="loading-row"><td colspan="7">加载失败，请刷新重试</td></tr>';
             console.error('Error loading users:', error);
         }
     }
@@ -200,12 +200,21 @@ class AdminPanel {
         const tbody = document.getElementById('users-table-body');
         
         if (this.filteredUsers.length === 0) {
-            tbody.innerHTML = '<tr class="loading-row"><td colspan="6">暂无用户数据</td></tr>';
+            tbody.innerHTML = '<tr class="loading-row"><td colspan="7">暂无用户数据</td></tr>';
             return;
         }
         
-        tbody.innerHTML = this.filteredUsers.map(user => `
+        tbody.innerHTML = this.filteredUsers.map(user => {
+            let avatarHtml = '';
+            if (user.avatar) {
+                avatarHtml = `<img src="${user.avatar}" alt="" style="width: 40px; height: 40px; object-fit: cover; border-radius: 50%;">`;
+            } else {
+                avatarHtml = `<span style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; background: var(--talk-blue); color: white; border-radius: 50%; font-size: 16px;">${user.username.charAt(0).toUpperCase()}</span>`;
+            }
+            
+            return `
             <tr data-user-id="${user.id}">
+                <td>${avatarHtml}</td>
                 <td>${user.id.substring(0, 8)}...</td>
                 <td><strong>${user.username}</strong></td>
                 <td>${new Date(user.created_at).toLocaleString()}</td>
@@ -218,7 +227,7 @@ class AdminPanel {
                     </div>
                 </td>
             </tr>
-        `).join('');
+        `}).join('');
     }
 
     filterUsers(keyword) {

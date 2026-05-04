@@ -38,7 +38,7 @@
                 </form>
                 
                 <div class="version-info">
-                    <span>v1.1.7</span>
+                    <span>v1.2.0</span>
                     <span class="copyright">© 2026 Li Chengyan. All Rights Reserved.</span>
                 </div>
             </div>
@@ -53,7 +53,7 @@
                     </div>
                     <div class="header-info">
                     <span id="uptime-display" class="uptime"></span>
-                    <span class="version-badge">v1.1.7</span>
+                    <span class="version-badge">v1.2.0</span>
                 </div>
                 </header>
 
@@ -81,9 +81,10 @@
                         <div class="update-info">
                             <div class="update-header">
                                 <img src="logo.jpg" alt="YanTalk Logo" class="update-logo">
-                                <h3>更新日志 v1.1.7</h3>
+                                <h3>更新日志 v1.2.0</h3>
                             </div>
                             <div class="update-content">
+                                <div class="update-item">🚀 v1.2.0: 支持用户自定义头像，支持发送图片消息，支持修改密码</div>
                                 <div class="update-item">🌟 v1.1.7: 更换新Logo和图标，所有标题左边添加小图标</div>
                                 <div class="update-item">📏 v1.1.6: 减小聊天气泡和联系人列表的上下间距，让界面更紧凑</div>
                                 <div class="update-item">💬 v1.1.5: 调整聊天气泡和联系人列表宽度，让界面更精致</div>
@@ -113,21 +114,31 @@
 
                     <div id="tab-me" class="tab-content">
                         <div class="profile-header">
-                            <div class="avatar-large">
+                            <div class="avatar-large" id="profile-avatar-container" style="cursor: pointer;">
+                                <img id="profile-avatar-img" src="" alt="头像" style="display: none; width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
                                 <span id="profile-avatar">?</span>
                             </div>
                             <div class="profile-info">
                                 <span id="profile-username" class="profile-name">未登录</span>
                             </div>
                         </div>
+                        <input type="file" id="avatar-upload-input" accept="image/*" style="display: none;">
                         <div class="settings-list">
+                            <div class="settings-item" id="upload-avatar-btn">
+                                <span>📷 修改头像</span>
+                                <span class="arrow">›</span>
+                            </div>
+                            <div class="settings-item" id="change-password-btn">
+                                <span>🔑 修改密码</span>
+                                <span class="arrow">›</span>
+                            </div>
                             <div class="settings-item" id="logout-btn">
                                 <span>退出登录</span>
                                 <span class="arrow">›</span>
                             </div>
                         </div>
                         <div class="footer-info">
-                            <p>YanTalk v1.1.7</p>
+                            <p>YanTalk v1.2.0</p>
                             <p class="copyright">© 2026 Li Chengyan. All Rights Reserved.</p>
                         </div>
                     </div>
@@ -165,6 +176,8 @@
                     </div>
                 </div>
                 <div class="message-input-area">
+                    <button id="image-btn" class="icon-btn">+</button>
+                    <input type="file" id="image-upload-input" accept="image/*" style="display: none;">
                     <button id="emoji-btn" class="icon-btn">😊</button>
                     <input type="text" id="message-input" placeholder="输入消息...">
                     <button id="send-btn" class="send-btn">发送</button>
@@ -183,6 +196,24 @@
                     </div>
                     <div class="modal-footer">
                         <button id="confirm-add-friend-btn">添加</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="change-password-modal" class="modal" style="display: none;">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>修改密码</h3>
+                        <button id="close-password-modal-btn" class="icon-btn">×</button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="password" id="old-password-input" placeholder="原密码">
+                        <input type="password" id="new-password-input" placeholder="新密码">
+                        <input type="password" id="confirm-password-input" placeholder="确认新密码">
+                        <p class="error-message" id="change-password-error"></p>
+                    </div>
+                    <div class="modal-footer">
+                        <button id="confirm-change-password-btn">修改</button>
                     </div>
                 </div>
             </div>

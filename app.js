@@ -7,7 +7,8 @@ class ChatApp {
         this.baseUrl = window.location.origin;
         this.pollInterval = null;
         this.currentTab = 'chats';
-        this.startTime = new Date();
+        // 固定运行时间标准为2026-05-04 00:54
+        this.startTime = new Date('2026-05-04T00:54:00+08:00');
         this.supabase = null;
         this.realtimeChannel = null;
         this.init();
@@ -41,6 +42,26 @@ class ChatApp {
 
         document.getElementById('logout-btn').addEventListener('click', () => this.logout());
         document.getElementById('share-app-btn').addEventListener('click', () => this.shareApp());
+
+        // 头像上传相关
+        document.getElementById('upload-avatar-btn').addEventListener('click', () => {
+            document.getElementById('avatar-upload-input').click();
+        });
+        document.getElementById('profile-avatar-container').addEventListener('click', () => {
+            document.getElementById('avatar-upload-input').click();
+        });
+        document.getElementById('avatar-upload-input').addEventListener('change', (e) => this.handleAvatarUpload(e));
+
+        // 图片发送相关
+        document.getElementById('image-btn').addEventListener('click', () => {
+            document.getElementById('image-upload-input').click();
+        });
+        document.getElementById('image-upload-input').addEventListener('change', (e) => this.handleImageUpload(e));
+
+        // 修改密码相关
+        document.getElementById('change-password-btn').addEventListener('click', () => this.showChangePasswordModal());
+        document.getElementById('close-password-modal-btn').addEventListener('click', () => this.closeChangePasswordModal());
+        document.getElementById('confirm-change-password-btn').addEventListener('click', () => this.changePassword());
     }
 
     startUptimeTimer() {
@@ -100,22 +121,6 @@ class ChatApp {
         if (this.pollInterval) {
             clearInterval(this.pollInterval);
             this.pollInterval = null;
-        }
-    }
-
-    async fetchData(url, options = {}) {
-        try {
-            const response = await fetch(`${this.baseUrl}${url}`, {
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...options.headers
-                },
-                ...options
-            });
-            return await response.json();
-        } catch (error) {
-            console.error('Fetch error:', error);
-            return { success: false, message: '网络错误' };
         }
     }
 
@@ -203,7 +208,19 @@ class ChatApp {
 
     updateProfile() {
         if (this.currentUser) {
-            document.getElementById('profile-avatar').textContent = this.currentUser.username.charAt(0).toUpperCase();
+            const avatarImg = document.getElementById('profile-avatar-img');
+            const avatarText = document.getElementById('profile-avatar');
+            
+            if (this.currentUser.avatar) {
+                avatarImg.src = this.currentUser.avatar;
+                avatarImg.style.display = 'block';
+                avatarText.style.display = 'none';
+            } else {
+                avatarImg.style.display = 'none';
+                avatarText.style.display = 'flex';
+                avatarText.textContent = this.currentUser.username.charAt(0).toUpperCase();
+            }
+            
             document.getElementById('profile-username').textContent = this.currentUser.username;
         }
     }
@@ -257,14 +274,21 @@ class ChatApp {
             const lastMessage = friendMessages[friendMessages.length - 1];
             const unreadCount = this.getUnreadCount(friend.id);
 
+            let avatarContent = '';
+            if (friend.avatar) {
+                avatarContent = `<img src="${friend.avatar}" alt="" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+            } else {
+                avatarContent = `<span>${friend.username.charAt(0).toUpperCase()}</span>`;
+            }
+
             return `
                 <div class="chat-item" data-friend-id="${friend.id}" onclick="app.openChat('${friend.id}')">
                     <div class="avatar">
-                        <span>${friend.username.charAt(0).toUpperCase()}</span>
+                        ${avatarContent}
                     </div>
                     <div class="chat-info">
                         <div class="chat-name">${friend.username}</div>
-                        <div class="chat-preview">${lastMessage ? lastMessage.content : '暂无消息'}</div>
+                        <div class="chat-preview">${lastMessage ? (lastMessage.type === 'image' ? '[图片]' : lastMessage.content) : '暂无消息'}</div>
                     </div>
                     <div>
                         ${lastMessage ? `<div class="chat-time">${lastMessage.time}</div>` : ''}
@@ -283,14 +307,23 @@ class ChatApp {
             return;
         }
 
-        contactsList.innerHTML = this.friends.map(friend => `
-            <div class="contact-item" data-friend-id="${friend.id}" onclick="app.openChat('${friend.id}')">
-                <div class="avatar">
-                    <span>${friend.username.charAt(0).toUpperCase()}</span>
+        contactsList.innerHTML = this.friends.map(friend => {
+            let avatarContent = '';
+            if (friend.avatar) {
+                avatarContent = `<img src="${friend.avatar}" alt="" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+            } else {
+                avatarContent = `<span>${friend.username.charAt(0).toUpperCase()}</span>`;
+            }
+
+            return `
+                <div class="contact-item" data-friend-id="${friend.id}" onclick="app.openChat('${friend.id}')">
+                    <div class="avatar">
+                        ${avatarContent}
+                    </div>
+                    <span class="contact-name">${friend.username}</span>
                 </div>
-                <span class="contact-name">${friend.username}</span>
-            </div>
-        `).join('');
+            `;
+        }).join('');
     }
 
     getUnreadCount(friendId) {
@@ -401,10 +434,31 @@ class ChatApp {
 
         container.innerHTML = friendMessages.map(msg => {
             const isMine = msg.senderId === this.currentUser.id;
+            const sender = isMine ? this.currentUser : this.currentFriend;
+            
+            let avatarContent = '';
+            if (sender && sender.avatar) {
+                avatarContent = `<img src="${sender.avatar}" alt="" style="width: 40px; height: 40px; object-fit: cover; border-radius: 50%;">`;
+            } else if (sender) {
+                avatarContent = `<span style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; background: var(--talk-blue); color: white; border-radius: 50%; font-size: 16px;">${sender.username.charAt(0).toUpperCase()}</span>`;
+            }
+
+            let messageContent = '';
+            if (msg.type === 'image') {
+                messageContent = `<img src="${msg.content}" alt="" style="max-width: 200px; border-radius: 8px;">`;
+            } else {
+                messageContent = `<p>${msg.content}</p>`;
+            }
+
             return `
-                <div class="message ${isMine ? 'sent' : 'received'}">
-                    <p>${msg.content}</p>
-                    <span class="message-time">${msg.time}</span>
+                <div class="message ${isMine ? 'sent' : 'received'}" style="flex-direction: ${isMine ? 'row-reverse' : 'row'};">
+                    ${avatarContent}
+                    <div style="display: flex; flex-direction: column; align-items: ${isMine ? 'flex-end' : 'flex-start'};">
+                        <div style="background: ${isMine ? 'linear-gradient(135deg, var(--talk-blue), var(--talk-dark-blue))' : 'var(--white)'}; color: ${isMine ? 'white' : 'var(--text-primary)'}; padding: 10px 14px; border-radius: 18px; box-shadow: var(--shadow-sm);">
+                            ${messageContent}
+                        </div>
+                        <span class="message-time">${msg.time}</span>
+                    </div>
                 </div>
             `;
         }).join('');
@@ -468,7 +522,8 @@ class ChatApp {
             body: JSON.stringify({
                 senderId: this.currentUser.id,
                 receiverId: this.currentFriend.id,
-                content
+                content,
+                type: 'text'
             })
         });
 
@@ -480,6 +535,132 @@ class ChatApp {
             input.value = '';
             this.renderMessages();
             this.renderChatList();
+        }
+    }
+
+    // 头像上传
+    async handleAvatarUpload(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append('avatar', file);
+        formData.append('userId', this.currentUser.id);
+
+        try {
+            const response = await fetch(`${this.baseUrl}/api/upload-avatar`, {
+                method: 'POST',
+                body: formData
+            });
+            const result = await response.json();
+
+            if (result.success) {
+                this.currentUser.avatar = result.avatar;
+                localStorage.setItem('currentUser', JSON.stringify(this.currentUser));
+                this.updateProfile();
+                this.renderContactsList();
+                this.renderChatList();
+                this.renderMessages();
+            } else {
+                alert('上传失败: ' + (result.message || '未知错误'));
+            }
+        } catch (error) {
+            console.error('上传头像错误:', error);
+            alert('上传失败');
+        }
+
+        e.target.value = '';
+    }
+
+    // 图片发送
+    async handleImageUpload(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append('image', file);
+
+        try {
+            const response = await fetch(`${this.baseUrl}/api/upload-image`, {
+                method: 'POST',
+                body: formData
+            });
+            const result = await response.json();
+
+            if (result.success) {
+                // 发送图片消息
+                const sendResult = await this.fetchData('/api/send-message', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        senderId: this.currentUser.id,
+                        receiverId: this.currentFriend.id,
+                        content: result.url,
+                        type: 'image'
+                    })
+                });
+
+                if (sendResult.success) {
+                    if (!this.messages[this.currentFriend.id]) {
+                        this.messages[this.currentFriend.id] = [];
+                    }
+                    this.messages[this.currentFriend.id].push(sendResult.message);
+                    this.renderMessages();
+                    this.renderChatList();
+                }
+            } else {
+                alert('上传失败: ' + (result.message || '未知错误'));
+            }
+        } catch (error) {
+            console.error('上传图片错误:', error);
+            alert('上传失败');
+        }
+
+        e.target.value = '';
+    }
+
+    // 修改密码
+    showChangePasswordModal() {
+        document.getElementById('change-password-modal').style.display = 'flex';
+        document.getElementById('old-password-input').value = '';
+        document.getElementById('new-password-input').value = '';
+        document.getElementById('confirm-password-input').value = '';
+        document.getElementById('change-password-error').textContent = '';
+    }
+
+    closeChangePasswordModal() {
+        document.getElementById('change-password-modal').style.display = 'none';
+    }
+
+    async changePassword() {
+        const oldPassword = document.getElementById('old-password-input').value;
+        const newPassword = document.getElementById('new-password-input').value;
+        const confirmPassword = document.getElementById('confirm-password-input').value;
+        const errorElement = document.getElementById('change-password-error');
+
+        if (!oldPassword || !newPassword || !confirmPassword) {
+            errorElement.textContent = '请填写完整';
+            return;
+        }
+
+        if (newPassword !== confirmPassword) {
+            errorElement.textContent = '两次输入的新密码不一致';
+            return;
+        }
+
+        const result = await this.fetchData('/api/change-password', {
+            method: 'POST',
+            body: JSON.stringify({
+                userId: this.currentUser.id,
+                oldPassword,
+                newPassword
+            })
+        });
+
+        if (result.success) {
+            this.closeChangePasswordModal();
+            alert('密码修改成功！');
+        } else {
+            errorElement.textContent = result.message || '修改失败';
         }
     }
 
@@ -509,6 +690,29 @@ class ChatApp {
         } else {
             navigator.clipboard.writeText(url);
             alert('链接已复制到剪贴板！');
+        }
+    }
+
+    async fetchData(url, options = {}) {
+        try {
+            const defaultOptions = {
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...options.headers
+                },
+                ...options
+            };
+
+            // 如果是FormData，删除Content-Type让浏览器自动设置
+            if (options.body instanceof FormData) {
+                delete defaultOptions.headers['Content-Type'];
+            }
+
+            const response = await fetch(`${this.baseUrl}${url}`, defaultOptions);
+            return await response.json();
+        } catch (error) {
+            console.error('Fetch error:', error);
+            return { success: false, message: '网络错误' };
         }
     }
 }
