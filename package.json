@@ -1,19 +1,19 @@
 {
-  "name": "talk-chat-app",
-  "version": "1.1.1",
-  "description": "Talk - 仿QQ即时聊天软件",
-  "main": "index.js",
-  "scripts": {
-    "start": "node index.js",
-    "dev": "node index.js"
-  },
-  "dependencies": {
-    "express": "^4.18.2",
-    "cors": "^2.8.5",
-    "uuid": "^9.0.0",
-    "pg": "^8.11.3",
-    "bcryptjs": "^2.4.3",
-    "@supabase/supabase-js": "^2.39.0",
-    "dotenv": "^16.4.0"
-  }
+    "name": "talk-chat-app",
+    "version": "1.1.2",
+    "description": "Talk - 仿QQ即时聊天软件",
+    "main": "index.js",
+    "scripts": {
+        "start": "node index.js",
+        "dev": "node index.js"
+    },
+    "dependencies": {
+        "express": "^4.18.2",
+        "cors": "^2.8.5",
+        "uuid": "^9.0.0",
+        "pg": "^8.11.3",
+        "bcryptjs": "^2.4.3",
+        "@supabase/supabase-js": "^2.39.0",
+        "dotenv": "^16.4.0"
+    }
 }

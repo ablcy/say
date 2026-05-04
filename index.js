@@ -394,12 +394,22 @@ app.post('/api/send-message', async (req, res) => {
   }
 
   try {
+    // 获取北京时间
+    const now = new Date();
+    const beijingTime = new Date(now.getTime() + (8 * 60 * 60 * 1000)); // UTC+8
+    const year = beijingTime.getUTCFullYear();
+    const month = String(beijingTime.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(beijingTime.getUTCDate()).padStart(2, '0');
+    const hours = String(beijingTime.getUTCHours()).padStart(2, '0');
+    const minutes = String(beijingTime.getUTCMinutes()).padStart(2, '0');
+    const formattedTime = `${year}/${month}/${day} ${hours}:${minutes}`;
+
     const message = {
       id: uuidv4(),
       senderId: senderId,
       receiverId: receiverId,
       content,
-      time: new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }),
+      time: formattedTime,
       timestamp: Date.now(),
       read: false
     };
