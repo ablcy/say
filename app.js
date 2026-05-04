@@ -451,15 +451,15 @@ class ChatApp {
             }
 
             return `
-                <div class="message ${isMine ? 'sent' : 'received'}">
-                    <div style="display: flex; flex-direction: ${isMine ? 'row-reverse' : 'row'}; align-items: flex-end; gap: 8px;">
-                        <div style="display: flex; flex-direction: column; align-items: ${isMine ? 'flex-end' : 'flex-start'};">
-                            <div style="background: ${isMine ? 'linear-gradient(135deg, var(--talk-blue), var(--talk-dark-blue))' : 'var(--white)'}; color: ${isMine ? 'white' : 'var(--text-primary)'}; padding: 10px 14px; border-radius: 18px; box-shadow: var(--shadow-sm); max-width: 70%;">
-                                ${messageContent}
-                            </div>
-                            <span class="message-time">${msg.time}</span>
-                        </div>
+                <div class="message-item" style="display: flex; flex-direction: ${isMine ? 'row-reverse' : 'row'}; margin-bottom: 12px; padding: 0 12px;">
+                    <div class="avatar-container" style="flex-shrink: 0; margin-top: 4px;">
                         ${avatarContent}
+                    </div>
+                    <div style="display: flex; flex-direction: column; align-items: ${isMine ? 'flex-end' : 'flex-start'}; max-width: 70%;">
+                        <div style="background: ${isMine ? 'linear-gradient(135deg, var(--talk-blue), var(--talk-dark-blue))' : 'var(--white)'}; color: ${isMine ? 'white' : 'var(--text-primary)'}; padding: 10px 14px; border-radius: ${isMine ? '18px 18px 4px 18px' : '18px 18px 18px 4px'}; box-shadow: var(--shadow-sm);">
+                            ${messageContent}
+                        </div>
+                        <span style="font-size: 11px; color: #999; margin-top: 4px; padding: 0 4px;">${msg.time}</span>
                     </div>
                 </div>
             `;

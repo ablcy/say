@@ -1,6 +1,6 @@
 {
     "name": "talk-chat-app",
-    "version": "1.2.1",
+    "version": "1.2.2",
     "description": "Talk - 仿QQ即时聊天软件",
     "main": "index.js",
     "scripts": {
