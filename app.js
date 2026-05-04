@@ -7,7 +7,7 @@ class ChatApp {
         this.baseUrl = window.location.origin;
         this.pollInterval = null;
         this.currentTab = 'chats';
-        // 固定运行时间标准为2026-05-04 00:54
+        this.searchedFriend = null;
         this.startTime = new Date('2026-05-04T00:54:00+08:00');
         this.supabase = null;
         this.realtimeChannel = null;
@@ -61,8 +61,10 @@ class ChatApp {
         document.getElementById('confirm-change-nickname-btn').addEventListener('click', () => this.changeNickname());
 
         document.getElementById('search-input').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') this.handleSearchAddFriend(e);
+            if (e.key === 'Enter') this.handleSearchFriend(e);
         });
+
+        document.getElementById('confirm-add-friend-btn').addEventListener('click', () => this.confirmAddFriend());
     }
 
     startUptimeTimer() {
@@ -400,9 +402,14 @@ class ChatApp {
 
         this.currentFriend = friend;
         document.getElementById('chat-friend-name').textContent = friend.username;
+        document.getElementById('chat-view').style.display = 'flex';
         this.renderMessages();
         this.markMessagesAsRead(friendId);
-        document.getElementById('chat-view').style.display = 'flex';
+        
+        setTimeout(() => {
+            const container = document.getElementById('messages-container');
+            container.scrollTop = container.scrollHeight;
+        }, 100);
     }
 
     closeChatView() {
@@ -482,7 +489,7 @@ class ChatApp {
         container.scrollTop = container.scrollHeight;
     }
 
-    async handleSearchAddFriend(e) {
+    async handleSearchFriend(e) {
         if (e.key !== 'Enter') return;
 
         const searchInput = document.getElementById('search-input');
@@ -493,7 +500,7 @@ class ChatApp {
         }
 
         if (friendUsername === this.currentUser.username) {
-            alert('不能添加自己为好友');
+            alert('不能添加自己');
             return;
         }
 
@@ -504,20 +511,57 @@ class ChatApp {
             return;
         }
 
+        const result = await this.fetchData(`/api/user/${encodeURIComponent(friendUsername)}`);
+
+        if (result.success && result.user) {
+            this.searchedFriend = result.user;
+            this.showSearchResult(result.user);
+        } else {
+            alert('用户不存在');
+        }
+    }
+
+    showSearchResult(user) {
+        const searchResult = document.getElementById('search-result');
+        const avatarEl = document.getElementById('search-result-avatar');
+        const usernameEl = document.getElementById('search-result-username');
+
+        if (user.avatar && user.avatar.trim() !== '') {
+            avatarEl.innerHTML = `<img src="${user.avatar}" alt="">`;
+        } else {
+            avatarEl.textContent = user.username.charAt(0).toUpperCase();
+        }
+
+        usernameEl.textContent = user.username;
+        searchResult.style.display = 'block';
+    }
+
+    async confirmAddFriend() {
+        if (!this.searchedFriend) return;
+
         const result = await this.fetchData('/api/add-friend', {
             method: 'POST',
-            body: JSON.stringify({ userId: this.currentUser.id, friendUsername })
+            body: JSON.stringify({
+                userId: this.currentUser.id,
+                friendUsername: this.searchedFriend.username
+            })
         });
 
         if (result.success) {
             this.friends.push(result.friend);
             this.messages[result.friend.id] = [];
-            searchInput.value = '';
+            this.hideSearchResult();
+            document.getElementById('search-input').value = '';
             this.renderChatList();
             this.openChat(result.friend.id);
         } else {
-            alert(result.message || '添加失败，该用户不存在');
+            alert(result.message || '添加失败');
         }
+    }
+
+    hideSearchResult() {
+        document.getElementById('search-result').style.display = 'none';
+        this.searchedFriend = null;
     }
 
     async send() {

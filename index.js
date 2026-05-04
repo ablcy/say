@@ -287,6 +287,38 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
+app.get('/api/user/:username', async (req, res) => {
+  const { username } = req.params;
+
+  if (!username) {
+    return res.status(400).json({ success: false, message: '参数错误' });
+  }
+
+  try {
+    let user;
+    if (DATABASE_URL) {
+      user = await usersDB.query(
+        'SELECT id, username, avatar, nickname FROM users WHERE username = $1',
+        [username]
+      );
+    } else {
+      user = await promisifyDB(usersDB.find).call(usersDB, { username });
+      user = user.map(u => ({ ...u, nickname: u.nickname || '' }));
+    }
+
+    const userData = DATABASE_URL ? user.rows[0] : user[0];
+
+    if (!userData) {
+      return res.status(400).json({ success: false, message: '用户不存在' });
+    }
+
+    res.json({ success: true, user: userData });
+  } catch (error) {
+    console.error('Search user error:', error);
+    res.status(500).json({ success: false, message: '查询失败' });
+  }
+});
+
 app.post('/api/add-friend', async (req, res) => {
   const { userId, friendUsername } = req.body;
 

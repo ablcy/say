@@ -845,3 +845,63 @@ form button[type="submit"]:hover {
         padding: 3px 6px;
     }
 }
+
+.search-result {
+    margin: 10px 20px;
+    padding: 15px;
+    background: var(--white);
+    border-radius: 16px;
+    box-shadow: var(--shadow-sm);
+}
+
+.search-result-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.search-result-item .avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--talk-blue) 0%, var(--talk-dark-blue) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 20px;
+    font-weight: 500;
+    overflow: hidden;
+}
+
+.search-result-item .avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.search-result-info {
+    flex: 1;
+    font-size: 16px;
+    color: var(--text-primary);
+}
+
+.add-friend-confirm-btn {
+    padding: 8px 16px;
+    background: linear-gradient(135deg, var(--talk-blue) 0%, var(--talk-dark-blue) 100%);
+    color: white;
+    border: none;
+    border-radius: 20px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.add-friend-confirm-btn:hover {
+    transform: scale(1.05);
+    box-shadow: var(--shadow-md);
+}
+
+.add-friend-confirm-btn:active {
+    transform: scale(0.95);
+}

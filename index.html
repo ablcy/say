@@ -58,10 +58,17 @@
                         <div class="search-bar">
                             <input type="text" placeholder="搜索好友/账号" id="search-input">
                         </div>
-                        <div class="chat-list" id="chat-list">
-                            <div class="empty-state">暂无聊天记录</div>
+                        <div id="search-result" class="search-result" style="display: none;">
+                            <div class="search-result-item" id="search-result-item">
+                                <div class="avatar" id="search-result-avatar"></div>
+                                <div class="search-result-info">
+                                    <span id="search-result-username"></span>
+                                </div>
+                                <button id="confirm-add-friend-btn" class="add-friend-confirm-btn">添加</button>
+                            </div>
                         </div>
-                        <div class="contacts-list" id="contacts-list" style="display: none;">
+                        <div class="chat-list" id="chat-list">
+                            <div class="empty-state">暂无聊天记录，请在搜索框输入账号添加好友</div>
                         </div>
                     </div>
 
