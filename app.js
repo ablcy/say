@@ -62,6 +62,11 @@ class ChatApp {
         document.getElementById('change-password-btn').addEventListener('click', () => this.showChangePasswordModal());
         document.getElementById('close-password-modal-btn').addEventListener('click', () => this.closeChangePasswordModal());
         document.getElementById('confirm-change-password-btn').addEventListener('click', () => this.changePassword());
+
+        // 修改昵称相关
+        document.getElementById('change-nickname-btn').addEventListener('click', () => this.showChangeNicknameModal());
+        document.getElementById('close-nickname-modal-btn').addEventListener('click', () => this.closeChangeNicknameModal());
+        document.getElementById('confirm-change-nickname-btn').addEventListener('click', () => this.changeNickname());
     }
 
     startUptimeTimer() {
@@ -83,18 +88,7 @@ class ChatApp {
         const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
         const seconds = Math.floor((diff % (1000 * 60)) / 1000);
 
-        let uptimeText = '';
-        if (days > 0) {
-            uptimeText = `${days}天 ${hours}小时`;
-        } else if (hours > 0) {
-            uptimeText = `${hours}小时 ${minutes}分`;
-        } else if (minutes > 0) {
-            uptimeText = `${minutes}分 ${seconds}秒`;
-        } else {
-            uptimeText = `${seconds}秒`;
-        }
-
-        document.getElementById('uptime-display').textContent = `已运行 ${uptimeText}`;
+        document.getElementById('uptime-display').textContent = `${days}d ${hours}h ${minutes}m ${seconds}s`;
     }
 
     loadUserData() {
@@ -187,7 +181,10 @@ class ChatApp {
 
         if (result.success) {
             this.currentUser = result.user;
-            localStorage.setItem('currentUser', JSON.stringify(result.user));
+            if (!this.currentUser.nickname) {
+                this.currentUser.nickname = '';
+                localStorage.setItem('currentUser', JSON.stringify(this.currentUser));
+            }
             this.friends = [];
             this.messages = {};
             this.showMainScreen();
@@ -222,6 +219,51 @@ class ChatApp {
             }
             
             document.getElementById('profile-username').textContent = this.currentUser.username;
+
+            const nicknameEl = document.getElementById('profile-nickname');
+            if (this.currentUser.nickname) {
+                nicknameEl.textContent = this.currentUser.nickname;
+                nicknameEl.style.display = 'inline';
+            } else {
+                nicknameEl.style.display = 'none';
+            }
+        }
+    }
+
+    showChangeNicknameModal() {
+        document.getElementById('change-nickname-modal').style.display = 'flex';
+        document.getElementById('new-nickname-input').value = this.currentUser.nickname || '';
+    }
+
+    closeChangeNicknameModal() {
+        document.getElementById('change-nickname-modal').style.display = 'none';
+        document.getElementById('change-nickname-error').textContent = '';
+    }
+
+    async changeNickname() {
+        const newNickname = document.getElementById('new-nickname-input').value.trim();
+
+        if (!newNickname) {
+            document.getElementById('change-nickname-error').textContent = '昵称不能为空';
+            return;
+        }
+
+        const result = await this.fetchData('/api/change-nickname', {
+            method: 'POST',
+            body: JSON.stringify({
+                userId: this.currentUser.id,
+                nickname: newNickname
+            })
+        });
+
+        if (result.success) {
+            this.currentUser.nickname = newNickname;
+            localStorage.setItem('currentUser', JSON.stringify(this.currentUser));
+            this.closeChangeNicknameModal();
+            this.updateProfile();
+            alert('昵称修改成功');
+        } else {
+            document.getElementById('change-nickname-error').textContent = result.message || '修改失败';
         }
     }
 

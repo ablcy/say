@@ -126,6 +126,7 @@ async function initDB() {
       // 添加avatar列（如果不存在）
       try {
         await usersDB.query('ALTER TABLE users ADD COLUMN avatar TEXT');
+        await usersDB.query('ALTER TABLE users ADD COLUMN nickname TEXT');
       } catch (e) {
         // 列已存在，忽略错误
       }
@@ -218,8 +219,8 @@ app.post('/api/register', async (req, res) => {
 
     if (DATABASE_URL) {
       await usersDB.query(
-        'INSERT INTO users (id, username, password, avatar) VALUES ($1, $2, $3, $4)',
-        [userId, username, hashedPassword, null]
+        'INSERT INTO users (id, username, password, avatar, nickname) VALUES ($1, $2, $3, $4, $5)',
+        [userId, username, hashedPassword, null, '']
       );
     } else {
       await promisifyDB(usersDB.insert).call(usersDB, {
@@ -228,11 +229,12 @@ app.post('/api/register', async (req, res) => {
         username,
         password: hashedPassword,
         avatar: null,
+        nickname: '',
         created_at: new Date().toISOString()
       });
     }
 
-    res.json({ success: true, user: { id: userId, username, avatar: null } });
+    res.json({ success: true, user: { id: userId, username, avatar: null, nickname: '' } });
   } catch (error) {
     console.error('Register error:', error);
     res.status(500).json({ success: false, message: '注册失败' });
@@ -250,11 +252,12 @@ app.post('/api/login', async (req, res) => {
     let user;
     if (DATABASE_URL) {
       user = await usersDB.query(
-        'SELECT id, username, password, avatar FROM users WHERE username = $1',
+        'SELECT id, username, password, avatar, nickname FROM users WHERE username = $1',
         [username]
       );
     } else {
       user = await promisifyDB(usersDB.find).call(usersDB, { username });
+      user = user.map(u => ({ ...u, nickname: u.nickname || '' }));
     }
 
     const userData = DATABASE_URL ? user.rows[0] : user[0];
@@ -299,6 +302,7 @@ app.post('/api/add-friend', async (req, res) => {
       );
     } else {
       friend = await promisifyDB(usersDB.find).call(usersDB, { username: friendUsername });
+      friend = friend.map(u => ({ ...u, nickname: u.nickname || '' }));
     }
 
     const friendData = DATABASE_URL ? friend.rows[0] : friend[0];
@@ -379,13 +383,13 @@ app.get('/api/friends/:userId', async (req, res) => {
     if (DATABASE_URL) {
       const placeholders = friendIds.map((_, i) => `$${i + 1}`).join(',');
       friendsData = await usersDB.query(
-        `SELECT id, username, avatar FROM users WHERE id IN (${placeholders})`,
+        `SELECT id, username, avatar, nickname FROM users WHERE id IN (${placeholders})`,
         friendIds
       );
     } else {
       friendsData = await promisifyDB(usersDB.find).call(usersDB, {
         id: { $in: friendIds }
-      });
+      }).map(u => ({ ...u, nickname: u.nickname || '' }));
     }
 
     res.json({ success: true, friends: DATABASE_URL ? friendsData.rows : friendsData });
@@ -720,6 +724,36 @@ app.post('/api/change-password', async (req, res) => {
     res.json({ success: true });
   } catch (error) {
     console.error('Change password error:', error);
+    res.status(500).json({ success: false, message: '修改失败' });
+  }
+});
+
+// 修改昵称API
+app.post('/api/change-nickname', async (req, res) => {
+  const { userId, nickname } = req.body;
+
+  if (!userId || !nickname) {
+    return res.status(400).json({ success: false, message: '参数错误' });
+  }
+
+  if (nickname.length > 20) {
+    return res.status(400).json({ success: false, message: '昵称不能超过20个字符' });
+  }
+
+  try {
+    if (DATABASE_URL) {
+      await usersDB.query('UPDATE users SET nickname = $1 WHERE id = $2', [nickname, userId]);
+    } else {
+      await promisifyDB(usersDB.update).call(usersDB,
+        { id: userId },
+        { $set: { nickname: nickname } },
+        { multi: false }
+      );
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Change nickname error:', error);
     res.status(500).json({ success: false, message: '修改失败' });
   }
 });
