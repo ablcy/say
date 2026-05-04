@@ -234,12 +234,93 @@ app.post('/api/register', async (req, res) => {
       });
     }
 
+    await sendWelcomeMessage(userId, username);
+
     res.json({ success: true, user: { id: userId, username, avatar: null, nickname: '' } });
   } catch (error) {
     console.error('Register error:', error);
     res.status(500).json({ success: false, message: '注册失败' });
   }
 });
+
+async function sendWelcomeMessage(userId, username) {
+  try {
+    let yanTalkUser;
+    if (DATABASE_URL) {
+      yanTalkUser = await usersDB.query("SELECT id FROM users WHERE username = 'YanTalk'");
+    } else {
+      yanTalkUser = await promisifyDB(usersDB.find).call(usersDB, { username: 'YanTalk' });
+    }
+
+    const yanTalkData = DATABASE_URL ? yanTalkUser.rows[0] : yanTalkUser[0];
+    if (!yanTalkData) return;
+
+    const yanTalkId = yanTalkData.id;
+
+    const now = new Date();
+    const beijingTime = new Date(now.getTime() + (8 * 60 * 60 * 1000));
+    const year = beijingTime.getUTCFullYear();
+    const month = String(beijingTime.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(beijingTime.getUTCDate()).padStart(2, '0');
+    const hours = String(beijingTime.getUTCHours()).padStart(2, '0');
+    const minutes = String(beijingTime.getUTCMinutes()).padStart(2, '0');
+    const formattedTime = `${year}/${month}/${day} ${hours}:${minutes}`;
+
+    if (DATABASE_URL) {
+      const existFriendship = await friendshipsDB.query(
+        'SELECT id FROM friendships WHERE user_id = $1 AND friend_id = $2',
+        [userId, yanTalkId]
+      );
+
+      if (existFriendship.rows.length === 0) {
+        await friendshipsDB.query(
+          'INSERT INTO friendships (user_id, friend_id) VALUES ($1, $2), ($3, $4)',
+          [userId, yanTalkId, yanTalkId, userId]
+        );
+      }
+
+      const messageId = uuidv4();
+      await messagesDB.query(
+        `INSERT INTO messages (id, sender_id, receiver_id, content, type, time, timestamp, read)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+        [messageId, yanTalkId, userId, '我是YanTalk官方账号，为了建设更有趣的聊天工具，欢迎提出宝贵的建议～', 'text', formattedTime, Date.now(), false]
+      );
+    } else {
+      const existFriendship = await promisifyDB(friendshipsDB.find).call(friendshipsDB, {
+        user_id: userId,
+        friend_id: yanTalkId
+      });
+
+      if (existFriendship.length === 0) {
+        await promisifyDB(friendshipsDB.insert).call(friendshipsDB, {
+          user_id: userId,
+          friend_id: yanTalkId
+        });
+        await promisifyDB(friendshipsDB.insert).call(friendshipsDB, {
+          user_id: yanTalkId,
+          friend_id: userId
+        });
+      }
+
+      const messageId = uuidv4();
+      await promisifyDB(messagesDB.insert).call(messagesDB, {
+        _id: messageId,
+        id: messageId,
+        sender_id: yanTalkId,
+        receiver_id: userId,
+        content: '我是YanTalk官方账号，为了建设更有趣的聊天工具，欢迎提出宝贵的建议～',
+        type: 'text',
+        time: formattedTime,
+        timestamp: Date.now(),
+        read: false
+      });
+    }
+
+    console.log(`Welcome message sent to ${username}`);
+  } catch (error) {
+    console.error('Send welcome message error:', error);
+  }
+}
 
 app.post('/api/login', async (req, res) => {
   const { username, password } = req.body;
