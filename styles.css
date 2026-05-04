@@ -48,7 +48,7 @@ body {
 .app-logo {
     width: 100px;
     height: 100px;
-    border-radius: 28px;
+    border-radius: 50%;
     display: block;
     object-fit: cover;
     margin: 0 auto 20px;
@@ -197,7 +197,7 @@ form button[type="submit"]:hover {
 .header-logo {
     width: 32px;
     height: 32px;
-    border-radius: 8px;
+    border-radius: 50%;
     object-fit: cover;
 }
 
@@ -304,7 +304,7 @@ form button[type="submit"]:hover {
 .contact-item .avatar {
     width: 58px;
     height: 58px;
-    border-radius: 18px;
+    border-radius: 50%;
     background: linear-gradient(135deg, var(--talk-blue) 0%, var(--talk-dark-blue) 100%);
     display: flex;
     align-items: center;
@@ -616,7 +616,7 @@ form button[type="submit"]:hover {
 .update-logo {
     width: 28px;
     height: 28px;
-    border-radius: 7px;
+    border-radius: 50%;
     object-fit: cover;
 }
 
@@ -681,7 +681,7 @@ form button[type="submit"]:hover {
 .avatar-large {
     width: 70px;
     height: 70px;
-    border-radius: 16px;
+    border-radius: 50%;
     background: linear-gradient(135deg, var(--talk-blue) 0%, var(--talk-dark-blue) 100%);
     display: flex;
     align-items: center;
