@@ -275,10 +275,14 @@ class ChatApp {
             const unreadCount = this.getUnreadCount(friend.id);
 
             let avatarContent = '';
-            if (friend.avatar) {
-                avatarContent = `<img src="${friend.avatar}" alt="" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+            if (friend.avatar && friend.avatar.trim() !== '') {
+                avatarContent = `<div style="width: 100%; height: 100%; border-radius: 50%; overflow: hidden;">
+                    <img src="${friend.avatar}" alt="" style="width: 100%; height: 100%; object-fit: cover;">
+                </div>`;
             } else {
-                avatarContent = `<span>${friend.username.charAt(0).toUpperCase()}</span>`;
+                avatarContent = `<div style="width: 100%; height: 100%; border-radius: 50%; background: var(--talk-blue); color: white; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 500;">
+                    ${friend.username.charAt(0).toUpperCase()}
+                </div>`;
             }
 
             return `
@@ -309,10 +313,14 @@ class ChatApp {
 
         contactsList.innerHTML = this.friends.map(friend => {
             let avatarContent = '';
-            if (friend.avatar) {
-                avatarContent = `<img src="${friend.avatar}" alt="" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+            if (friend.avatar && friend.avatar.trim() !== '') {
+                avatarContent = `<div style="width: 100%; height: 100%; border-radius: 50%; overflow: hidden;">
+                    <img src="${friend.avatar}" alt="" style="width: 100%; height: 100%; object-fit: cover;">
+                </div>`;
             } else {
-                avatarContent = `<span>${friend.username.charAt(0).toUpperCase()}</span>`;
+                avatarContent = `<div style="width: 100%; height: 100%; border-radius: 50%; background: var(--talk-blue); color: white; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 500;">
+                    ${friend.username.charAt(0).toUpperCase()}
+                </div>`;
             }
 
             return `
@@ -437,10 +445,18 @@ class ChatApp {
             const sender = isMine ? this.currentUser : this.currentFriend;
             
             let avatarContent = '';
-            if (sender && sender.avatar) {
-                avatarContent = `<img src="${sender.avatar}" alt="" style="width: 40px; height: 40px; object-fit: cover; border-radius: 50%;">`;
-            } else if (sender) {
-                avatarContent = `<span style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; background: var(--talk-blue); color: white; border-radius: 50%; font-size: 16px;">${sender.username.charAt(0).toUpperCase()}</span>`;
+            if (sender) {
+                if (sender.avatar && sender.avatar.trim() !== '') {
+                    // 有头像时显示图片
+                    avatarContent = `<div style="width: 40px; height: 40px; border-radius: 50%; overflow: hidden; flex-shrink: 0;">
+                        <img src="${sender.avatar}" alt="" style="width: 100%; height: 100%; object-fit: cover;">
+                    </div>`;
+                } else {
+                    // 没有头像时显示首字母
+                    avatarContent = `<div style="width: 40px; height: 40px; border-radius: 50%; background: var(--talk-blue); color: white; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 500; flex-shrink: 0;">
+                        ${sender.username.charAt(0).toUpperCase()}
+                    </div>`;
+                }
             }
 
             let messageContent = '';
