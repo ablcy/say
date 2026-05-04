@@ -185,6 +185,9 @@ class ChatApp {
             }
             this.friends = [];
             this.messages = {};
+            this.loadFriends().then(() => {
+                this.loadMessages();
+            });
             this.showMainScreen();
             this.startPolling();
         } else {
