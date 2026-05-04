@@ -297,7 +297,7 @@ app.post('/api/add-friend', async (req, res) => {
     let friend;
     if (DATABASE_URL) {
       friend = await usersDB.query(
-        'SELECT id, username FROM users WHERE username = $1',
+        'SELECT id, username, avatar, nickname FROM users WHERE username = $1',
         [friendUsername]
       );
     } else {
