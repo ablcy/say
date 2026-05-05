@@ -38,7 +38,7 @@
                 </form>
 
                 <div class="version-info">
-                    <span>v2.0.0</span>
+                    <span>v3.0.0</span>
                     <span class="copyright">© 2026 Li Chengyan. All Rights Reserved.</span>
                 </div>
             </div>
@@ -76,9 +76,10 @@
                         <div class="update-info">
                             <div class="update-header">
                                 <img src="logo.jpg" alt="YanTalk Logo" class="update-logo">
-                                <h3>更新日志 v2.0.0</h3>
+                                <h3>更新日志 v3.0.0</h3>
                             </div>
                             <div class="update-content">
+                                <div class="update-item">✨ v3.0.0: 新增修改账号功能，支持用户修改账号名称；为所有操作按钮添加加载动画</div>
                                 <div class="update-item">✨ v2.0.0: 合并消息与通讯录界面；优化添加好友流程，搜索后显示用户信息再添加；聊天自动滚动到底部；新用户注册自动发送欢迎消息</div>
                                 <div class="update-item">🔧 v1.3.1: 新增自定义昵称功能，账号与昵称分离；优化界面布局</div>
                                 <div class="update-item">🔧 v1.2.5: 删除emoji按钮，调整输入区域布局，发送按钮改为圆形向上箭头</div>
@@ -120,8 +121,8 @@
                         </div>
                         <input type="file" id="avatar-upload-input" accept="image/*" style="display: none;">
                         <div class="settings-list">
-                            <div class="settings-item" id="change-nickname-btn">
-                                <span>📝 修改昵称</span>
+                            <div class="settings-item" id="change-username-btn">
+                                <span>📝 修改账号</span>
                                 <span class="arrow">›</span>
                             </div>
                             <div class="settings-item" id="upload-avatar-btn">
@@ -138,7 +139,7 @@
                             </div>
                         </div>
                         <div class="footer-info">
-                            <p>YanTalk v2.0.0</p>
+                            <p>YanTalk v3.0.0</p>
                             <p class="copyright">© 2026 Li Chengyan. All Rights Reserved.</p>
                             <p id="uptime-display" class="uptime"></p>
                         </div>
@@ -198,18 +199,18 @@
                 </div>
             </div>
 
-            <div id="change-nickname-modal" class="modal" style="display: none;">
+            <div id="change-username-modal" class="modal" style="display: none;">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h3>修改昵称</h3>
-                        <button id="close-nickname-modal-btn" class="icon-btn">×</button>
+                        <h3>修改账号</h3>
+                        <button id="close-username-modal-btn" class="icon-btn">×</button>
                     </div>
                     <div class="modal-body">
-                        <input type="text" id="new-nickname-input" placeholder="输入新昵称">
-                        <p class="error-message" id="change-nickname-error"></p>
+                        <input type="text" id="new-username-input" placeholder="输入新账号">
+                        <p class="error-message" id="change-username-error"></p>
                     </div>
                     <div class="modal-footer">
-                        <button id="confirm-change-nickname-btn">修改</button>
+                        <button id="confirm-change-username-btn">修改</button>
                     </div>
                 </div>
             </div>

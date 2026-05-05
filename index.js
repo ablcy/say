@@ -846,32 +846,47 @@ app.post('/api/change-password', async (req, res) => {
   }
 });
 
-// 修改昵称API
-app.post('/api/change-nickname', async (req, res) => {
-  const { userId, nickname } = req.body;
+// 修改账号API
+app.post('/api/change-username', async (req, res) => {
+  const { userId, username } = req.body;
 
-  if (!userId || !nickname) {
+  if (!userId || !username) {
     return res.status(400).json({ success: false, message: '参数错误' });
   }
 
-  if (nickname.length > 20) {
-    return res.status(400).json({ success: false, message: '昵称不能超过20个字符' });
+  if (username.length < 3) {
+    return res.status(400).json({ success: false, message: '账号至少需要3个字符' });
+  }
+
+  if (username.length > 20) {
+    return res.status(400).json({ success: false, message: '账号不能超过20个字符' });
   }
 
   try {
+    let existing;
     if (DATABASE_URL) {
-      await usersDB.query('UPDATE users SET nickname = $1 WHERE id = $2', [nickname, userId]);
+      existing = await usersDB.query('SELECT id FROM users WHERE username = $1 AND id != $2', [username, userId]);
+    } else {
+      existing = await promisifyDB(usersDB.find).call(usersDB, { username, id: { $ne: userId } });
+    }
+
+    if ((DATABASE_URL && existing.rows.length > 0) || (!DATABASE_URL && existing.length > 0)) {
+      return res.status(400).json({ success: false, message: '该账号已被使用' });
+    }
+
+    if (DATABASE_URL) {
+      await usersDB.query('UPDATE users SET username = $1 WHERE id = $2', [username, userId]);
     } else {
       await promisifyDB(usersDB.update).call(usersDB,
         { id: userId },
-        { $set: { nickname: nickname } },
+        { $set: { username: username } },
         { multi: false }
       );
     }
 
     res.json({ success: true });
   } catch (error) {
-    console.error('Change nickname error:', error);
+    console.error('Change username error:', error);
     res.status(500).json({ success: false, message: '修改失败' });
   }
 });

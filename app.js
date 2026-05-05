@@ -56,9 +56,9 @@ class ChatApp {
         document.getElementById('close-password-modal-btn').addEventListener('click', () => this.closeChangePasswordModal());
         document.getElementById('confirm-change-password-btn').addEventListener('click', () => this.changePassword());
 
-        document.getElementById('change-nickname-btn').addEventListener('click', () => this.showChangeNicknameModal());
-        document.getElementById('close-nickname-modal-btn').addEventListener('click', () => this.closeChangeNicknameModal());
-        document.getElementById('confirm-change-nickname-btn').addEventListener('click', () => this.changeNickname());
+        document.getElementById('change-username-btn').addEventListener('click', () => this.showChangeUsernameModal());
+        document.getElementById('close-username-modal-btn').addEventListener('click', () => this.closeChangeUsernameModal());
+        document.getElementById('confirm-change-username-btn').addEventListener('click', () => this.changeUsername());
 
         document.getElementById('search-input').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') this.handleSearchFriend(e);
@@ -247,42 +247,47 @@ class ChatApp {
         }
     }
 
-    showChangeNicknameModal() {
-        document.getElementById('change-nickname-modal').style.display = 'flex';
-        document.getElementById('new-nickname-input').value = this.currentUser.nickname || '';
+    showChangeUsernameModal() {
+        document.getElementById('change-username-modal').style.display = 'flex';
+        document.getElementById('new-username-input').value = this.currentUser.username || '';
     }
 
-    closeChangeNicknameModal() {
-        document.getElementById('change-nickname-modal').style.display = 'none';
-        document.getElementById('change-nickname-error').textContent = '';
+    closeChangeUsernameModal() {
+        document.getElementById('change-username-modal').style.display = 'none';
+        document.getElementById('change-username-error').textContent = '';
     }
 
-    async changeNickname() {
-        const newNickname = document.getElementById('new-nickname-input').value.trim();
+    async changeUsername() {
+        const newUsername = document.getElementById('new-username-input').value.trim();
 
-        if (!newNickname) {
-            document.getElementById('change-nickname-error').textContent = '昵称不能为空';
+        if (!newUsername) {
+            document.getElementById('change-username-error').textContent = '账号不能为空';
             return;
         }
 
-        this.setButtonLoading('confirm-change-nickname-btn', true);
-        const result = await this.fetchData('/api/change-nickname', {
+        if (newUsername.length < 3) {
+            document.getElementById('change-username-error').textContent = '账号至少需要3个字符';
+            return;
+        }
+
+        this.setButtonLoading('confirm-change-username-btn', true);
+        const result = await this.fetchData('/api/change-username', {
             method: 'POST',
             body: JSON.stringify({
                 userId: this.currentUser.id,
-                nickname: newNickname
+                username: newUsername
             })
         });
-        this.setButtonLoading('confirm-change-nickname-btn', false);
+        this.setButtonLoading('confirm-change-username-btn', false);
 
         if (result.success) {
-            this.currentUser.nickname = newNickname;
+            this.currentUser.username = newUsername;
             localStorage.setItem('currentUser', JSON.stringify(this.currentUser));
-            this.closeChangeNicknameModal();
+            this.closeChangeUsernameModal();
             this.updateProfile();
-            alert('昵称修改成功');
+            alert('账号修改成功');
         } else {
-            document.getElementById('change-nickname-error').textContent = result.message || '修改失败';
+            document.getElementById('change-username-error').textContent = result.message || '修改失败';
         }
     }
 
