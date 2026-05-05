@@ -11,11 +11,13 @@ class ChatApp {
         this.startTime = new Date('2026-05-04T00:54:00+08:00');
         this.supabase = null;
         this.realtimeChannel = null;
+        this.currentLang = 'zh';
         this.init();
     }
 
     init() {
         this.bindEvents();
+        this.loadLanguage();
         this.loadTheme();
         this.loadUserData();
         this.startUptimeTimer();
@@ -72,6 +74,9 @@ class ChatApp {
 
         // 深色模式切换
         document.getElementById('theme-toggle').addEventListener('change', (e) => this.toggleTheme(e.target.checked));
+
+        // 语言切换
+        document.getElementById('lang-toggle').addEventListener('change', (e) => this.toggleLanguage(e.target.checked));
     }
 
     startUptimeTimer() {
@@ -831,10 +836,10 @@ class ChatApp {
     toggleUpdateLog() {
         const header = document.getElementById('update-header');
         const content = document.getElementById('update-content');
-        
+
         header.classList.toggle('expanded');
         content.classList.toggle('expanded');
-        
+
         if (content.classList.contains('expanded')) {
             // 展开时显示
             content.style.display = 'block';
@@ -842,6 +847,177 @@ class ChatApp {
             // 折叠时隐藏
             content.style.display = 'none';
         }
+    }
+
+    // 语言包
+    translations = {
+        zh: {
+            login: '登录',
+            register: '注册',
+            username: '账号',
+            password: '密码',
+            searchPlaceholder: '搜索好友/账号',
+            add: '添加',
+            messages: '消息',
+            discover: '发现',
+            me: '个人',
+            shareApp: '分享应用',
+            darkMode: '深色模式',
+            language: '英文模式',
+            updateLog: '更新日志',
+            changeAccount: '修改账号',
+            changeAvatar: '修改头像',
+            changePassword: '修改密码',
+            logout: '退出登录',
+            startChat: '开始聊天吧！',
+            noFriends: '暂无好友，请在搜索框输入账号添加好友',
+            changePasswordTitle: '修改密码',
+            oldPassword: '原密码',
+            newPassword: '新密码',
+            confirmNewPassword: '确认新密码',
+            changeAccountTitle: '修改账号',
+            inputNewAccount: '输入新账号',
+            cancel: '取消',
+            confirm: '修改',
+            logoutConfirm: '确定要退出登录吗？',
+            linkCopied: '链接已复制到剪贴板！',
+            appName: 'YanTalk',
+            appDesc: '即时通讯聊天工具',
+            copyright: '© 2026 Li Chengyan. All Rights Reserved.'
+        },
+        en: {
+            login: 'Login',
+            register: 'Register',
+            username: 'Username',
+            password: 'Password',
+            searchPlaceholder: 'Search friends/username',
+            add: 'Add',
+            messages: 'Messages',
+            discover: 'Discover',
+            me: 'Me',
+            shareApp: 'Share App',
+            darkMode: 'Dark Mode',
+            language: 'Chinese Mode',
+            updateLog: 'Update Log',
+            changeAccount: 'Change Account',
+            changeAvatar: 'Change Avatar',
+            changePassword: 'Change Password',
+            logout: 'Logout',
+            startChat: 'Start chatting!',
+            noFriends: 'No friends yet. Search username to add friends',
+            changePasswordTitle: 'Change Password',
+            oldPassword: 'Old Password',
+            newPassword: 'New Password',
+            confirmNewPassword: 'Confirm New Password',
+            changeAccountTitle: 'Change Account',
+            inputNewAccount: 'Input new account',
+            cancel: 'Cancel',
+            confirm: 'Confirm',
+            logoutConfirm: 'Are you sure you want to logout?',
+            linkCopied: 'Link copied to clipboard!',
+            appName: 'YanTalk',
+            appDesc: 'Instant Messaging Chat Tool',
+            copyright: '© 2026 Li Chengyan. All Rights Reserved.'
+        }
+    }
+
+    // 加载语言设置
+    loadLanguage() {
+        const savedLang = localStorage.getItem('language');
+        if (savedLang) {
+            this.currentLang = savedLang;
+        }
+        document.getElementById('lang-toggle').checked = this.currentLang === 'en';
+        this.translateUI();
+    }
+
+    // 切换语言
+    toggleLanguage(isEnglish) {
+        this.currentLang = isEnglish ? 'en' : 'zh';
+        localStorage.setItem('language', this.currentLang);
+        this.translateUI();
+    }
+
+    // 翻译界面
+    translateUI() {
+        const t = this.translations[this.currentLang];
+        if (!t) return;
+
+        // 登录/注册页面
+        document.querySelector('#login-form input[type="text"]').placeholder = t.username;
+        document.querySelector('#login-form input[type="password"]').placeholder = t.password;
+        document.getElementById('login-form-submit-btn').textContent = t.login;
+        document.getElementById('login-tab').textContent = t.login;
+        document.getElementById('register-tab').textContent = t.register;
+
+        document.querySelector('#register-form input[type="text"]').placeholder = t.username + ' (3+ chars)';
+        document.querySelectorAll('#register-form input[type="password"]')[0].placeholder = t.password;
+        document.querySelectorAll('#register-form input[type="password"]')[1].placeholder = t.password;
+        document.getElementById('register-form-submit-btn').textContent = t.register;
+
+        // 搜索框
+        document.getElementById('search-input').placeholder = t.searchPlaceholder;
+        document.getElementById('confirm-add-friend-btn').textContent = t.add;
+
+        // 导航栏
+        document.querySelector('[data-tab="chats"] span:last-child').textContent = t.messages;
+        document.querySelector('[data-tab="discover"] span:last-child').textContent = t.discover;
+        document.querySelector('[data-tab="me"] span:last-child').textContent = t.me;
+
+        // 发现页
+        document.querySelector('#share-app-btn span:nth-child(2)').textContent = t.shareApp;
+        document.querySelector('#toggle-theme-btn span:nth-child(2)').textContent = t.darkMode;
+
+        const langLabel = document.querySelector('#lang-toggle-label');
+        if (langLabel) {
+            langLabel.textContent = t.language;
+        }
+
+        // 更新日志
+        const updateTitle = document.querySelector('#update-header h3');
+        if (updateTitle) {
+            updateTitle.textContent = t.updateLog + ' v3.0.1';
+        }
+
+        // 个人页
+        document.querySelector('#change-username-btn span:first-child').textContent = t.changeAccount;
+        document.querySelector('#upload-avatar-btn span:first-child').textContent = t.changeAvatar;
+        document.querySelector('#change-password-btn span:first-child').textContent = t.changePassword;
+        document.querySelector('#logout-btn span:first-child').textContent = t.logout;
+
+        // 修改密码弹窗
+        document.querySelector('#change-password-modal h3').textContent = t.changePasswordTitle;
+        document.querySelectorAll('#change-password-modal input')[0].placeholder = t.oldPassword;
+        document.querySelectorAll('#change-password-modal input')[1].placeholder = t.newPassword;
+        document.querySelectorAll('#change-password-modal input')[2].placeholder = t.confirmNewPassword;
+        document.getElementById('confirm-change-password-btn').textContent = t.confirm;
+
+        // 修改账号弹窗
+        document.querySelector('#change-username-modal h3').textContent = t.changeAccountTitle;
+        document.getElementById('new-username-input').placeholder = t.inputNewAccount;
+        document.getElementById('confirm-change-username-btn').textContent = t.confirm;
+
+        // 空状态
+        const emptyState = document.querySelector('.empty-state');
+        if (emptyState) {
+            emptyState.textContent = t.noFriends;
+        }
+
+        const emptyChat = document.querySelector('.empty-chat p');
+        if (emptyChat) {
+            emptyChat.textContent = t.startChat;
+        }
+
+        // 页脚
+        document.querySelector('.footer-info p:first-child').textContent = 'YanTalk v3.0.1';
+        document.querySelector('.copyright').textContent = t.copyright;
+
+        // 版本信息
+        document.querySelector('.version-info span:first-child').textContent = 'v3.0.1';
+
+        // 聊天输入框
+        document.getElementById('message-input').placeholder = this.currentLang === 'zh' ? '输入消息...' : 'Type a message...';
+        document.getElementById('send-btn').textContent = this.currentLang === 'zh' ? '发送' : 'Send';
     }
 }
 
