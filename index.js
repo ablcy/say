@@ -76,23 +76,45 @@ function adminAuthMiddleware(req, res, next) {
 
 let usersDB, friendshipsDB, messagesDB;
 
-if (DATABASE_URL) {
-  const { Pool } = require('pg');
-  const pool = new Pool({
-    connectionString: DATABASE_URL,
-    ssl: DATABASE_URL ? { rejectUnauthorized: false } : false
-  });
-
-  const db = {
+async function createLibSQLClient(url) {
+  const { createClient } = await import('@libsql/client');
+  const client = createClient({ url });
+  
+  return {
     query: async (sql, params = []) => {
-      const result = await pool.query(sql, params);
-      return { rows: result.rows, rowCount: result.rowCount };
+      const result = await client.execute(sql, params);
+      return { rows: result.rows, rowCount: result.rows.length };
     },
     run: async (sql, params = []) => {
-      const result = await pool.query(sql, params);
-      return { lastID: result.rows[0]?.id || null, changes: result.rowCount };
+      const result = await client.execute(sql, params);
+      return { lastID: result.rows[0]?.id || null, changes: result.rows.length };
     }
   };
+}
+
+if (DATABASE_URL) {
+  let db;
+  
+  if (DATABASE_URL.startsWith('libsql://') || DATABASE_URL.startsWith('file:')) {
+    db = await createLibSQLClient(DATABASE_URL);
+  } else {
+    const { Pool } = require('pg');
+    const pool = new Pool({
+      connectionString: DATABASE_URL,
+      ssl: DATABASE_URL ? { rejectUnauthorized: false } : false
+    });
+
+    db = {
+      query: async (sql, params = []) => {
+        const result = await pool.query(sql, params);
+        return { rows: result.rows, rowCount: result.rowCount };
+      },
+      run: async (sql, params = []) => {
+        const result = await pool.query(sql, params);
+        return { lastID: result.rows[0]?.id || null, changes: result.rowCount };
+      }
+    };
+  }
 
   usersDB = db;
   friendshipsDB = db;
