@@ -16,6 +16,7 @@ class ChatApp {
 
     init() {
         this.bindEvents();
+        this.loadTheme();
         this.loadUserData();
         this.startUptimeTimer();
     }
@@ -65,6 +66,12 @@ class ChatApp {
         });
 
         document.getElementById('confirm-add-friend-btn').addEventListener('click', () => this.confirmAddFriend());
+
+        // 更新日志折叠/展开
+        document.getElementById('update-header').addEventListener('click', () => this.toggleUpdateLog());
+
+        // 深色模式切换
+        document.getElementById('theme-toggle').addEventListener('change', (e) => this.toggleTheme(e.target.checked));
     }
 
     startUptimeTimer() {
@@ -797,6 +804,43 @@ class ChatApp {
         } catch (error) {
             console.error('Fetch error:', error);
             return { success: false, message: '网络错误' };
+        }
+    }
+
+    // 加载主题设置
+    loadTheme() {
+        const savedTheme = localStorage.getItem('darkMode');
+        if (savedTheme === 'true') {
+            document.body.classList.add('dark-mode');
+            document.getElementById('theme-toggle').checked = true;
+        }
+    }
+
+    // 切换深色/浅色模式
+    toggleTheme(isDark) {
+        if (isDark) {
+            document.body.classList.add('dark-mode');
+            localStorage.setItem('darkMode', 'true');
+        } else {
+            document.body.classList.remove('dark-mode');
+            localStorage.setItem('darkMode', 'false');
+        }
+    }
+
+    // 折叠/展开更新日志
+    toggleUpdateLog() {
+        const header = document.getElementById('update-header');
+        const content = document.getElementById('update-content');
+        
+        header.classList.toggle('expanded');
+        content.classList.toggle('expanded');
+        
+        if (content.classList.contains('expanded')) {
+            // 展开时显示
+            content.style.display = 'block';
+        } else {
+            // 折叠时隐藏
+            content.style.display = 'none';
         }
     }
 }

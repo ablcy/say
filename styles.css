@@ -930,3 +930,105 @@ form button[type="submit"]:hover {
     pointer-events: none;
     opacity: 0.8;
 }
+
+/* 折叠动画 */
+.update-header {
+    position: relative;
+}
+
+.toggle-arrow {
+    position: absolute;
+    right: 0;
+    transition: transform 0.3s ease;
+    font-size: 1.2rem;
+}
+
+.update-header.expanded .toggle-arrow {
+    transform: rotate(180deg);
+}
+
+.update-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s ease, padding 0.3s ease;
+}
+
+.update-content.expanded {
+    max-height: 2000px;
+    padding-top: 10px;
+}
+
+/* 深色模式 */
+body.dark-mode {
+    --text-primary: #FFFFFF;
+    --text-secondary: #98989D;
+    --border-color: #38383A;
+    --bg-color: #1C1C1E;
+    --white: #2C2C2E;
+    --card-bg: #2C2C2E;
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.5);
+}
+
+body.dark-mode .chat-item:hover,
+body.dark-mode .contact-item:hover,
+body.dark-mode .discover-item:hover,
+body.dark-mode .settings-item:hover {
+    background: #3A3A3C;
+}
+
+body.dark-mode .message.received {
+    background: #3A3A3C;
+}
+
+/* 深色模式开关样式 */
+.toggle-switch {
+    position: relative;
+    width: 48px;
+    height: 26px;
+    display: inline-block;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: 0.3s;
+    border-radius: 26px;
+}
+
+.toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 20px;
+    width: 20px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: 0.3s;
+    border-radius: 50%;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.toggle-switch input:checked + .toggle-slider {
+    background-color: var(--talk-blue);
+}
+
+.toggle-switch input:checked + .toggle-slider:before {
+    transform: translateX(22px);
+}
+
+/* 深色模式下的开关 */
+body.dark-mode .toggle-slider {
+    background-color: #555;
+}
