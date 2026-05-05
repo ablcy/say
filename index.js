@@ -14,13 +14,11 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(__dirname));
 
-// 确保uploads目录存在
 const uploadsDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
-// 配置multer存储
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, uploadsDir);
@@ -28,19 +26,19 @@ const storage = multer.diskStorage({
   filename: function (req, file, cb) {
     const uniqueSuffix = Date.now() + '-' + uuidv4();
     cb(null, uniqueSuffix + path.extname(file.originalname));
-  }
+  },
 });
 
 const upload = multer({
   storage: storage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB限制
+  limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: function (req, file, cb) {
     if (file.mimetype.startsWith('image/')) {
       cb(null, true);
     } else {
       cb(new Error('只允许上传图片文件'));
     }
-  }
+  },
 });
 
 const DATABASE_URL = process.env.DATABASE_URL;
@@ -75,64 +73,69 @@ function adminAuthMiddleware(req, res, next) {
 }
 
 let usersDB, friendshipsDB, messagesDB;
+let dbInitialized = false;
 
-async function createLibSQLClient(url) {
-  const { createClient } = await import('@libsql/client');
-  const client = createClient({ url });
-  
-  return {
-    query: async (sql, params = []) => {
-      const result = await client.execute(sql, params);
-      return { rows: result.rows, rowCount: result.rows.length };
-    },
-    run: async (sql, params = []) => {
-      const result = await client.execute(sql, params);
-      return { lastID: result.rows[0]?.id || null, changes: result.rows.length };
+async function initializeDatabase() {
+  if (dbInitialized) return;
+
+  if (DATABASE_URL) {
+    let db;
+    
+    if (DATABASE_URL.startsWith('libsql://') || DATABASE_URL.startsWith('file:')) {
+      const libsql = require('@libsql/client');
+      const client = libsql.createClient({ url: DATABASE_URL });
+      
+      db = {
+        query: async (sql, params = []) => {
+          const result = await client.execute(sql, params);
+          return { rows: result.rows, rowCount: result.rows.length };
+        },
+        run: async (sql, params = []) => {
+          const result = await client.execute(sql, params);
+          return { lastID: result.rows[0]?.id || null, changes: result.rows.length };
+        }
+      };
+    } else {
+      const { Pool } = require('pg');
+      const pool = new Pool({
+        connectionString: DATABASE_URL,
+        ssl: DATABASE_URL ? { rejectUnauthorized: false } : false
+      });
+
+      db = {
+        query: async (sql, params = []) => {
+          const result = await pool.query(sql, params);
+          return { rows: result.rows, rowCount: result.rowCount };
+        },
+        run: async (sql, params = []) => {
+          const result = await pool.query(sql, params);
+          return { lastID: result.rows[0]?.id || null, changes: result.rowCount };
+        }
+      };
     }
-  };
-}
 
-if (DATABASE_URL) {
-  let db;
-  
-  if (DATABASE_URL.startsWith('libsql://') || DATABASE_URL.startsWith('file:')) {
-    db = await createLibSQLClient(DATABASE_URL);
+    usersDB = db;
+    friendshipsDB = db;
+    messagesDB = db;
   } else {
-    const { Pool } = require('pg');
-    const pool = new Pool({
-      connectionString: DATABASE_URL,
-      ssl: DATABASE_URL ? { rejectUnauthorized: false } : false
-    });
+    const Datastore = require('nedb');
+    usersDB = new Datastore({ filename: './data/users.db', autoload: true });
+    friendshipsDB = new Datastore({ filename: './data/friendships.db', autoload: true });
+    messagesDB = new Datastore({ filename: './data/messages.db', autoload: true });
 
-    db = {
-      query: async (sql, params = []) => {
-        const result = await pool.query(sql, params);
-        return { rows: result.rows, rowCount: result.rowCount };
-      },
-      run: async (sql, params = []) => {
-        const result = await pool.query(sql, params);
-        return { lastID: result.rows[0]?.id || null, changes: result.rowCount };
-      }
-    };
+    usersDB.ensureIndex({ fieldName: 'username', unique: true });
+    friendshipsDB.ensureIndex({ fieldName: 'user_id' });
+    friendshipsDB.ensureIndex({ fieldName: ['user_id', 'friend_id'], unique: true });
+    messagesDB.ensureIndex({ fieldName: 'sender_id' });
+    messagesDB.ensureIndex({ fieldName: 'receiver_id' });
   }
-
-  usersDB = db;
-  friendshipsDB = db;
-  messagesDB = db;
-} else {
-  const Datastore = require('nedb');
-  usersDB = new Datastore({ filename: './data/users.db', autoload: true });
-  friendshipsDB = new Datastore({ filename: './data/friendships.db', autoload: true });
-  messagesDB = new Datastore({ filename: './data/messages.db', autoload: true });
-
-  usersDB.ensureIndex({ fieldName: 'username', unique: true });
-  friendshipsDB.ensureIndex({ fieldName: 'user_id' });
-  friendshipsDB.ensureIndex({ fieldName: ['user_id', 'friend_id'], unique: true });
-  messagesDB.ensureIndex({ fieldName: 'sender_id' });
-  messagesDB.ensureIndex({ fieldName: 'receiver_id' });
+  
+  dbInitialized = true;
 }
 
 async function initDB() {
+  await initializeDatabase();
+  
   if (DATABASE_URL) {
     try {
       await usersDB.query(`
@@ -141,21 +144,20 @@ async function initDB() {
           username TEXT UNIQUE NOT NULL,
           password TEXT NOT NULL,
           avatar TEXT,
+          nickname TEXT,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
       `);
 
-      // 添加avatar列（如果不存在）
       try {
-        await usersDB.query('ALTER TABLE users ADD COLUMN avatar TEXT');
-        await usersDB.query('ALTER TABLE users ADD COLUMN nickname TEXT');
+        await usersDB.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar TEXT');
+        await usersDB.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS nickname TEXT');
       } catch (e) {
-        // 列已存在，忽略错误
       }
 
       await friendshipsDB.query(`
         CREATE TABLE IF NOT EXISTS friendships (
-          id SERIAL PRIMARY KEY,
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
           user_id TEXT NOT NULL,
           friend_id TEXT NOT NULL,
           UNIQUE(user_id, friend_id)
@@ -170,16 +172,14 @@ async function initDB() {
           content TEXT NOT NULL,
           type TEXT DEFAULT 'text',
           time TEXT NOT NULL,
-          timestamp BIGINT NOT NULL,
+          timestamp INTEGER NOT NULL,
           read BOOLEAN DEFAULT FALSE
         )
       `);
 
-      // 添加type列（如果不存在）
       try {
-        await messagesDB.query('ALTER TABLE messages ADD COLUMN type TEXT DEFAULT \'text\'');
+        await messagesDB.query('ALTER TABLE messages ADD COLUMN IF NOT EXISTS type TEXT DEFAULT \'text\'');
       } catch (e) {
-        // 列已存在，忽略错误
       }
 
       await messagesDB.query(`
@@ -190,7 +190,7 @@ async function initDB() {
         CREATE INDEX IF NOT EXISTS idx_friendships_user_id ON friendships(user_id)
       `);
 
-      console.log('PostgreSQL database initialized successfully');
+      console.log('Database initialized successfully');
     } catch (error) {
       console.error('Database initialization error:', error);
     }
@@ -199,8 +199,6 @@ async function initDB() {
     console.log('NeDB database initialized successfully');
   }
 }
-
-initDB();
 
 function promisifyDB(method) {
   return function(query, options = {}) {
@@ -212,6 +210,11 @@ function promisifyDB(method) {
     });
   };
 }
+
+app.use(async (req, res, next) => {
+  await initializeDatabase();
+  next();
+});
 
 app.post('/api/register', async (req, res) => {
   const { username, password } = req.body;
@@ -590,9 +593,8 @@ app.post('/api/send-message', async (req, res) => {
   }
 
   try {
-    // 获取北京时间
     const now = new Date();
-    const beijingTime = new Date(now.getTime() + (8 * 60 * 60 * 1000)); // UTC+8
+    const beijingTime = new Date(now.getTime() + (8 * 60 * 60 * 1000));
     const year = beijingTime.getUTCFullYear();
     const month = String(beijingTime.getUTCMonth() + 1).padStart(2, '0');
     const day = String(beijingTime.getUTCDate()).padStart(2, '0');
@@ -677,8 +679,7 @@ app.get('/admin', (req, res) => {
 app.post('/api/admin/login', (req, res) => {
   const { username, password } = req.body;
 
-  if (!username || !password) {
-    return res.status(400).json({ success: false, message: '用户名和密码不能为空' });
+  if (!username || !password) {return res.status(400).json({ success: false, message: '用户名和密码不能为空' });
   }
 
   if (username !== ADMIN_USERNAME || password !== ADMIN_PASSWORD) {
@@ -785,7 +786,6 @@ app.delete('/api/admin/users/:userId', adminAuthMiddleware, async (req, res) => 
   }
 });
 
-// 上传头像API
 app.post('/api/upload-avatar', upload.single('avatar'), async (req, res) => {
   try {
     const { userId } = req.body;
@@ -817,7 +817,6 @@ app.post('/api/upload-avatar', upload.single('avatar'), async (req, res) => {
   }
 });
 
-// 修改密码API
 app.post('/api/change-password', async (req, res) => {
   const { userId, oldPassword, newPassword } = req.body;
 
@@ -868,7 +867,6 @@ app.post('/api/change-password', async (req, res) => {
   }
 });
 
-// 修改账号API
 app.post('/api/change-username', async (req, res) => {
   const { userId, username } = req.body;
 
@@ -913,7 +911,6 @@ app.post('/api/change-username', async (req, res) => {
   }
 });
 
-// 上传图片API
 app.post('/api/upload-image', upload.single('image'), async (req, res) => {
   try {
     if (!req.file) {
@@ -928,9 +925,10 @@ app.post('/api/upload-image', upload.single('image'), async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
+  await initDB();
   console.log(`Talk server running on port ${PORT}`);
-  console.log(DATABASE_URL ? 'Using PostgreSQL' : 'Using NeDB for development');
+  console.log(DATABASE_URL ? `Using ${DATABASE_URL.startsWith('libsql://') ? 'Turso' : 'PostgreSQL'}` : 'Using NeDB for development');
 });
 
 module.exports = app;
