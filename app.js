@@ -89,6 +89,19 @@ class ChatApp {
         document.getElementById('uptime-display').textContent = `${days}d ${hours}h ${minutes}m ${seconds}s`;
     }
 
+    setButtonLoading(btnId, isLoading, originalText = '') {
+        const btn = document.getElementById(btnId);
+        if (!btn) return;
+        if (isLoading) {
+            btn.dataset.originalText = btn.textContent;
+            btn.innerHTML = '<span class="loading-spinner"></span>';
+            btn.classList.add('loading-btn');
+        } else {
+            btn.textContent = btn.dataset.originalText || originalText;
+            btn.classList.remove('loading-btn');
+        }
+    }
+
     loadUserData() {
         const storedUser = localStorage.getItem('currentUser');
         if (storedUser) {
@@ -139,10 +152,12 @@ class ChatApp {
         const username = document.getElementById('login-username').value.trim();
         const password = document.getElementById('login-password').value;
 
+        this.setButtonLoading('login-form-submit-btn', true);
         const result = await this.fetchData('/api/login', {
             method: 'POST',
             body: JSON.stringify({ username, password })
         });
+        this.setButtonLoading('login-form-submit-btn', false);
 
         if (result.success) {
             this.currentUser = result.user;
@@ -172,10 +187,12 @@ class ChatApp {
             return;
         }
 
+        this.setButtonLoading('register-form-submit-btn', true);
         const result = await this.fetchData('/api/register', {
             method: 'POST',
             body: JSON.stringify({ username, password })
         });
+        this.setButtonLoading('register-form-submit-btn', false);
 
         if (result.success) {
             this.currentUser = result.user;
@@ -248,6 +265,7 @@ class ChatApp {
             return;
         }
 
+        this.setButtonLoading('confirm-change-nickname-btn', true);
         const result = await this.fetchData('/api/change-nickname', {
             method: 'POST',
             body: JSON.stringify({
@@ -255,6 +273,7 @@ class ChatApp {
                 nickname: newNickname
             })
         });
+        this.setButtonLoading('confirm-change-nickname-btn', false);
 
         if (result.success) {
             this.currentUser.nickname = newNickname;
@@ -542,6 +561,7 @@ class ChatApp {
     async confirmAddFriend() {
         if (!this.searchedFriend) return;
 
+        this.setButtonLoading('confirm-add-friend-btn', true);
         const result = await this.fetchData('/api/add-friend', {
             method: 'POST',
             body: JSON.stringify({
@@ -549,6 +569,7 @@ class ChatApp {
                 friendUsername: this.searchedFriend.username
             })
         });
+        this.setButtonLoading('confirm-add-friend-btn', false);
 
         if (result.success) {
             this.friends.push(result.friend);
@@ -572,6 +593,7 @@ class ChatApp {
         const content = input.value.trim();
         if (!content) return;
 
+        this.setButtonLoading('send-btn', true);
         const result = await this.fetchData('/api/send-message', {
             method: 'POST',
             body: JSON.stringify({
@@ -581,6 +603,7 @@ class ChatApp {
                 type: 'text'
             })
         });
+        this.setButtonLoading('send-btn', false);
 
         if (result.success) {
             if (!this.messages[this.currentFriend.id]) {
@@ -701,6 +724,7 @@ class ChatApp {
             return;
         }
 
+        this.setButtonLoading('confirm-change-password-btn', true);
         const result = await this.fetchData('/api/change-password', {
             method: 'POST',
             body: JSON.stringify({
@@ -709,6 +733,7 @@ class ChatApp {
                 newPassword
             })
         });
+        this.setButtonLoading('confirm-change-password-btn', false);
 
         if (result.success) {
             this.closeChangePasswordModal();
