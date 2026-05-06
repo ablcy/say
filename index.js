@@ -44,6 +44,7 @@ const upload = multer({
 });
 
 const DATABASE_URL = process.env.DATABASE_URL;
+const TURSO_AUTH_TOKEN = process.env.TURSO_AUTH_TOKEN;
 const SALT_ROUNDS = 10;
 
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
@@ -80,7 +81,10 @@ if (DATABASE_URL) {
   if (DATABASE_URL.startsWith('libsql://') || DATABASE_URL.startsWith('file:')) {
     // Turso/libSQL
     const libsql = require('@libsql/client');
-    const client = libsql.createClient({ url: DATABASE_URL });
+    const client = libsql.createClient({ 
+      url: DATABASE_URL,
+      authToken: TURSO_AUTH_TOKEN 
+    });
     
     const db = {
       query: async (sql, params = []) => {
