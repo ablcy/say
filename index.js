@@ -709,6 +709,56 @@ app.get('/api/admin/verify', (req, res) => {
   }
 });
 
+app.post('/api/admin/change-password', async (req, res) => {
+  const token = req.headers['x-admin-token'];
+  if (!token || !validateAdminToken(token)) {
+    return res.status(401).json({ success: false, message: '未授权访问' });
+  }
+
+  const { oldPassword, newPassword } = req.body;
+
+  if (!oldPassword || !newPassword) {
+    return res.status(400).json({ success: false, message: '密码不能为空' });
+  }
+
+  if (oldPassword !== ADMIN_PASSWORD) {
+    return res.status(400).json({ success: false, message: '原密码错误' });
+  }
+
+  const hashedPassword = await bcrypt.hash(newPassword, SALT_ROUNDS);
+  
+  try {
+    const envPath = path.join(__dirname, '.env');
+    let envContent = '';
+    
+    if (fs.existsSync(envPath)) {
+      envContent = fs.readFileSync(envPath, 'utf8');
+    }
+    
+    const adminPasswordLine = `ADMIN_PASSWORD=${newPassword}`;
+    const adminUsernameLine = `ADMIN_USERNAME=${ADMIN_USERNAME}`;
+    
+    if (envContent.includes('ADMIN_PASSWORD=')) {
+      envContent = envContent.replace(/ADMIN_PASSWORD=.*/g, adminPasswordLine);
+    } else {
+      envContent += `\n${adminPasswordLine}`;
+    }
+    
+    if (envContent.includes('ADMIN_USERNAME=')) {
+      envContent = envContent.replace(/ADMIN_USERNAME=.*/g, adminUsernameLine);
+    }
+    
+    fs.writeFileSync(envPath, envContent.trim() + '\n');
+    
+    process.env.ADMIN_PASSWORD = newPassword;
+    
+    res.json({ success: true, message: '密码修改成功' });
+  } catch (error) {
+    console.error('Change admin password error:', error);
+    res.status(500).json({ success: false, message: '修改失败' });
+  }
+});
+
 app.get('/api/admin/users', adminAuthMiddleware, async (req, res) => {
   try {
     let users;

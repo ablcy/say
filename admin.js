@@ -104,11 +104,68 @@ class AdminPanel {
         this.showLoginScreen();
     }
 
+    showChangePasswordModal() {
+        document.getElementById('change-password-modal').style.display = 'flex';
+        document.getElementById('old-admin-password').value = '';
+        document.getElementById('new-admin-password').value = '';
+        document.getElementById('confirm-admin-password').value = '';
+        document.getElementById('change-password-error').textContent = '';
+    }
+
+    closeChangePasswordModal() {
+        document.getElementById('change-password-modal').style.display = 'none';
+    }
+
+    async changeAdminPassword() {
+        const oldPassword = document.getElementById('old-admin-password').value;
+        const newPassword = document.getElementById('new-admin-password').value;
+        const confirmPassword = document.getElementById('confirm-admin-password').value;
+        const errorElement = document.getElementById('change-password-error');
+
+        if (!oldPassword || !newPassword || !confirmPassword) {
+            errorElement.textContent = '请填写完整';
+            return;
+        }
+
+        if (newPassword !== confirmPassword) {
+            errorElement.textContent = '两次输入的新密码不一致';
+            return;
+        }
+
+        try {
+            const response = await fetch(`${this.baseUrl}/api/admin/change-password`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-admin-token': this.adminToken
+                },
+                body: JSON.stringify({ oldPassword, newPassword })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                this.closeChangePasswordModal();
+                alert('密码修改成功！');
+                this.addLog('管理员密码修改成功', '成功');
+            } else {
+                errorElement.textContent = result.message || '修改失败';
+            }
+        } catch (error) {
+            errorElement.textContent = '网络错误，请重试';
+        }
+    }
+
     bindEvents() {
         document.getElementById('refresh-btn').addEventListener('click', () => this.loadUsers());
         document.getElementById('search-user-search').addEventListener('input', (e) => this.filterUsers(e.target.value));
         document.getElementById('clear-logs-btn').addEventListener('click', () => this.clearLogs());
         document.getElementById('logout-btn').addEventListener('click', () => this.handleLogout());
+        document.getElementById('change-password-btn').addEventListener('click', () => this.showChangePasswordModal());
+        
+        document.getElementById('close-password-modal-btn').addEventListener('click', () => this.closeChangePasswordModal());
+        document.getElementById('cancel-password-btn').addEventListener('click', () => this.closeChangePasswordModal());
+        document.getElementById('confirm-password-btn').addEventListener('click', () => this.changeAdminPassword());
         
         document.getElementById('close-modal-btn').addEventListener('click', () => this.closeModal());
         document.getElementById('cancel-btn').addEventListener('click', () => this.closeModal());
@@ -116,6 +173,10 @@ class AdminPanel {
         
         document.getElementById('confirm-modal').addEventListener('click', (e) => {
             if (e.target.id === 'confirm-modal') this.closeModal();
+        });
+        
+        document.getElementById('change-password-modal').addEventListener('click', (e) => {
+            if (e.target.id === 'change-password-modal') this.closeChangePasswordModal();
         });
     }
 

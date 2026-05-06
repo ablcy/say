@@ -77,6 +77,9 @@ class ChatApp {
 
         // 语言切换
         document.getElementById('lang-toggle').addEventListener('change', (e) => this.toggleLanguage(e.target.checked));
+        
+        // 后台管理入口
+        document.getElementById('admin-entrance-btn').addEventListener('click', () => this.openAdminPanel());
     }
 
     startUptimeTimer() {
@@ -788,6 +791,10 @@ class ChatApp {
             alert('链接已复制到剪贴板！');
         }
     }
+    
+    openAdminPanel() {
+        window.location.href = '/admin';
+    }
 
     async fetchData(url, options = {}) {
         try {
@@ -864,6 +871,7 @@ class ChatApp {
             shareApp: '分享应用',
             darkMode: '深色模式',
             language: '英文模式',
+            adminPanel: '后台管理',
             updateLog: '更新日志',
             changeAccount: '修改账号',
             changeAvatar: '修改头像',
@@ -898,6 +906,7 @@ class ChatApp {
             shareApp: 'Share App',
             darkMode: 'Dark Mode',
             language: 'Chinese Mode',
+            adminPanel: 'Admin Panel',
             updateLog: 'Update Log',
             changeAccount: 'Change Account',
             changeAvatar: 'Change Avatar',
@@ -972,6 +981,9 @@ class ChatApp {
         if (langLabel) {
             langLabel.textContent = t.language;
         }
+        
+        // 后台管理入口
+        document.querySelector('#admin-entrance-btn span:nth-child(2)').textContent = t.adminPanel;
 
         // 更新日志
         const updateTitle = document.querySelector('#update-header h3');
