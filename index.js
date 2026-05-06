@@ -88,12 +88,12 @@ if (DATABASE_URL) {
     
     const db = {
       query: async (sql, params = []) => {
-        const result = await client.execute(sql, params);
+        const namedParams = params.map((p, i) => [`@p${i+1}`, p]);
+        const namedSql = sql.replace(/\$(\d+)/g, (match, num) => `@p${num}`);
+        const paramObj = {};
+        namedParams.forEach(([key, value]) => { paramObj[key] = value; });
+        const result = await client.execute({ sql: namedSql, args: paramObj });
         return { rows: result.rows, rowCount: result.rows.length };
-      },
-      run: async (sql, params = []) => {
-        const result = await client.execute(sql, params);
-        return { lastID: result.rows[0]?.id || null, changes: result.rows.length };
       }
     };
 
@@ -112,10 +112,6 @@ if (DATABASE_URL) {
       query: async (sql, params = []) => {
         const result = await pool.query(sql, params);
         return { rows: result.rows, rowCount: result.rowCount };
-      },
-      run: async (sql, params = []) => {
-        const result = await pool.query(sql, params);
-        return { lastID: result.rows[0]?.id || null, changes: result.rowCount };
       }
     };
 
@@ -201,8 +197,6 @@ async function initDB() {
     console.log('NeDB database initialized successfully');
   }
 }
-
-initDB();
 
 function promisifyDB(method) {
   return function(query, options = {}) {
@@ -975,9 +969,15 @@ app.post('/api/upload-image', upload.single('image'), async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`Talk server running on port ${PORT}`);
-  console.log(DATABASE_URL ? `Using ${DATABASE_URL.startsWith('libsql://') ? 'Turso' : 'PostgreSQL'}` : 'Using NeDB for development');
-});
+async function startServer() {
+  await initDB();
+  
+  app.listen(PORT, () => {
+    console.log(`Talk server running on port ${PORT}`);
+    console.log(DATABASE_URL ? `Using ${DATABASE_URL.startsWith('libsql://') ? 'Turso' : 'PostgreSQL'}` : 'Using NeDB for development');
+  });
+}
+
+startServer();
 
 module.exports = app;
